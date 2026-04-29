@@ -3,4 +3,5 @@ class Routes {
   static const wallet = '/';
   static const send = '/send';
   static const receive = '/receive';
+  static const pendingTx = '/pending-transactions';
 }

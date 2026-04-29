@@ -87,6 +87,15 @@ class _WalletScreenState extends State<WalletScreen> {
                       icon: const Icon(Icons.qr_code_scanner),
                       label: const Text('Receive'),
                     ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        Routes.pendingTx,
+                      ),
+                      icon: const Icon(Icons.pending_actions),
+                      label: const Text('Pending Transactions'),
+                    ),
                     const SizedBox(height: 24),
                     BlocBuilder<SyncCubit, SyncState>(
                       builder: (context, state) => switch (state) {

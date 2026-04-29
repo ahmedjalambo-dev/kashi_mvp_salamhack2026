@@ -125,4 +125,17 @@ class PendingTxLocalService {
     );
     return (result.first['total'] as num).toDouble();
   }
+
+  /// Returns all transactions that haven't been successfully synced yet.
+  /// Includes: pending_sync, syncing, failed_permanently, rejected.
+  /// Ordered by most recent first for display purposes.
+  Future<List<Map<String, Object?>>> queryAllNonSynced() async {
+    final db = await _db.database;
+    return db.query(
+      AppConstants.pendingTxTable,
+      where: 'status != ?',
+      whereArgs: ['synced'],
+      orderBy: 'created_at desc',
+    );
+  }
 }

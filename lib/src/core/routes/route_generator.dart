@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../features/receive/data/repositories/receive_repository.dart';
+import '../../features/receive/data/services/pending_tx_local_service.dart';
 import '../../features/receive/state/receive_cubit.dart';
 import '../../features/receive/ui/receive_screen.dart';
+import '../../features/send/data/repositories/send_repository.dart';
 import '../../features/send/state/send_cubit.dart';
 import '../../features/send/ui/send_screen.dart';
+import '../../features/wallet/data/repositories/wallet_repository.dart';
+import '../../features/wallet/state/pending_tx_cubit.dart';
 import '../../features/wallet/state/wallet_cubit.dart';
+import '../../features/wallet/ui/pending_transactions_screen.dart';
 import '../../features/wallet/ui/wallet_screen.dart';
 import '../di/injector.dart';
-import '../../features/receive/data/repositories/receive_repository.dart';
-import '../../features/send/data/repositories/send_repository.dart';
-import '../../features/wallet/data/repositories/wallet_repository.dart';
 import 'routes.dart';
 
 class RouteGenerator {
@@ -48,6 +51,14 @@ class RouteGenerator {
               myPublicKey: myPub,
             ),
             child: const ReceiveScreen(),
+          ),
+        );
+      case Routes.pendingTx:
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => BlocProvider(
+            create: (_) => PendingTxCubit(getIt<PendingTxLocalService>()),
+            child: const PendingTransactionsScreen(),
           ),
         );
       default:
