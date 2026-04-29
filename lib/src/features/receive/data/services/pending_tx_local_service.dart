@@ -21,17 +21,39 @@ class PendingTxLocalService {
       'client_created_at':
           envelope.payload.clientCreatedAt.toUtc().toIso8601String(),
       'status': 'pending_sync',
+      'retry_count': 0,
       'created_at': DateTime.now().toUtc().toIso8601String(),
     });
   }
 
+  /// Returns rows that need syncing: both `pending_sync` and `syncing`
+  /// (the latter may exist if the app crashed mid-push).
+  /// Excludes rows that have exceeded the retry limit.
   Future<List<Map<String, Object?>>> queryPending() async {
     final db = await _db.database;
     return db.query(
       AppConstants.pendingTxTable,
-      where: 'status = ?',
-      whereArgs: ['pending_sync'],
+      where: 'status in (?, ?) and retry_count < ?',
+      whereArgs: [
+        'pending_sync',
+        'syncing',
+        AppConstants.maxSyncRetries,
+      ],
       orderBy: 'created_at asc',
+    );
+  }
+
+  /// Marks a transaction as currently being pushed to the server.
+  /// This intermediate status makes sync crash-safe: if the app crashes
+  /// after push succeeds but before markSynced, the row will be re-attempted
+  /// on restart (idempotent via the transaction id primary key).
+  Future<void> markSyncing(String id) async {
+    final db = await _db.database;
+    await db.update(
+      AppConstants.pendingTxTable,
+      {'status': 'syncing'},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
@@ -53,5 +75,54 @@ class PendingTxLocalService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  /// Increments the retry count for a row. If the count reaches
+  /// [AppConstants.maxSyncRetries], the status is set to `failed_permanently`.
+  Future<void> incrementRetry(String id) async {
+    final db = await _db.database;
+    await db.rawUpdate(
+      '''
+      update ${AppConstants.pendingTxTable}
+      set retry_count = retry_count + 1,
+          status = case
+            when retry_count + 1 >= ${AppConstants.maxSyncRetries}
+              then 'failed_permanently'
+            else status
+          end
+      where id = ?
+      ''',
+      [id],
+    );
+  }
+
+  /// Sum of pending incoming amounts for the given public key.
+  Future<double> sumPendingReceived(String myPublicKey) async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      '''
+      select coalesce(sum(amount), 0) as total
+      from ${AppConstants.pendingTxTable}
+      where receiver_public_key = ?
+        and status in ('pending_sync', 'syncing')
+      ''',
+      [myPublicKey],
+    );
+    return (result.first['total'] as num).toDouble();
+  }
+
+  /// Sum of pending outgoing amounts for the given public key.
+  Future<double> sumPendingSent(String myPublicKey) async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      '''
+      select coalesce(sum(amount), 0) as total
+      from ${AppConstants.pendingTxTable}
+      where sender_public_key = ?
+        and status in ('pending_sync', 'syncing')
+      ''',
+      [myPublicKey],
+    );
+    return (result.first['total'] as num).toDouble();
   }
 }

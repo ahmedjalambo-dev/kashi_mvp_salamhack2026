@@ -36,6 +36,11 @@ class SyncRepository {
       for (final row in rows) {
         final id = row['id'] as String;
         try {
+          // Mark as 'syncing' before push — crash-safe intermediate status.
+          // If the app crashes after push() succeeds but before markSynced(),
+          // the row will be re-attempted on restart (idempotent via id PK).
+          await _local.markSyncing(id);
+
           await _remote.push(
             id: id,
             senderPublicKey: row['sender_public_key'] as String,
@@ -55,7 +60,8 @@ class SyncRepository {
           await _local.markRejected(id, e.message);
           failed++;
         } on SocketException {
-          // Connectivity dropped — stop the loop, leave row pending.
+          // Connectivity dropped — increment retry count and stop the loop.
+          await _local.incrementRetry(id);
           return Success(SyncOutcome(synced, failed));
         }
       }

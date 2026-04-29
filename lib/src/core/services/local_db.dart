@@ -19,7 +19,7 @@ class LocalDb {
     final path = p.join(dir.path, AppConstants.sqliteDbName);
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, _) async {
         await db.execute('''
           create table ${AppConstants.pendingTxTable} (
@@ -33,12 +33,20 @@ class LocalDb {
             client_created_at text not null,
             status text not null default 'pending_sync',
             last_error text,
+            retry_count integer not null default 0,
             created_at text not null
           );
         ''');
         await db.execute(
           'create index pending_status_idx on ${AppConstants.pendingTxTable}(status);',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'alter table ${AppConstants.pendingTxTable} add column retry_count integer not null default 0;',
+          );
+        }
       },
     );
   }
@@ -48,3 +56,4 @@ class LocalDb {
     _db = null;
   }
 }
+

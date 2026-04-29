@@ -13,4 +13,8 @@ class AppConstants {
   static const walletsTable = 'wallets';
   static const transactionsTable = 'transactions';
   static const syncRpc = 'sync_transaction';
+
+  /// Maximum number of sync retries before marking a transaction as
+  /// permanently failed.
+  static const maxSyncRetries = 3;
 }

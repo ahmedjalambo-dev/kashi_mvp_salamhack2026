@@ -4,6 +4,7 @@ import '../../../../core/network/error_handler.dart';
 import '../../../../core/network/error_model.dart';
 import '../../../../core/network/result.dart';
 import '../../../../core/services/secure_storage.dart';
+import '../../../receive/data/services/pending_tx_local_service.dart';
 import '../models/wallet_model.dart';
 import '../services/wallet_remote_service.dart';
 
@@ -13,15 +14,18 @@ class WalletRepository {
     required SecureStorage secureStorage,
     required EcdsaSigner signer,
     required ErrorHandler errors,
+    required PendingTxLocalService pendingTx,
   })  : _remote = remote,
         _storage = secureStorage,
         _signer = signer,
-        _errors = errors;
+        _errors = errors,
+        _pendingTx = pendingTx;
 
   final WalletRemoteService _remote;
   final SecureStorage _storage;
   final EcdsaSigner _signer;
   final ErrorHandler _errors;
+  final PendingTxLocalService _pendingTx;
 
   static const _pubKeyStorageKey =
       '${AppConstants.secureStoragePrivateKey}.pub';
@@ -67,5 +71,13 @@ class WalletRepository {
     } catch (e) {
       return Failure(_errors.map(e));
     }
+  }
+
+  /// Calculates the local balance adjustment from pending (unsynced)
+  /// transactions: received minus sent.
+  Future<double> pendingBalanceAdjustment(String publicKey) async {
+    final received = await _pendingTx.sumPendingReceived(publicKey);
+    final sent = await _pendingTx.sumPendingSent(publicKey);
+    return received - sent;
   }
 }

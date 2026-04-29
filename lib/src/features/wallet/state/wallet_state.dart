@@ -18,9 +18,24 @@ class WalletLoading extends WalletState {
 
 class WalletReady extends WalletState {
   final WalletModel wallet;
-  const WalletReady(this.wallet);
+
+  /// Whether the balance may be stale (e.g. last refresh failed due to
+  /// no connectivity). The UI can show a subtle indicator.
+  final bool stale;
+
+  /// Local adjustment based on pending (not-yet-synced) transactions.
+  /// Positive means net incoming pending, negative means net outgoing.
+  /// Display balance as `wallet.balance + pendingAdjustment`.
+  final double pendingAdjustment;
+
+  const WalletReady(
+    this.wallet, {
+    this.stale = false,
+    this.pendingAdjustment = 0,
+  });
+
   @override
-  List<Object?> get props => [wallet];
+  List<Object?> get props => [wallet, stale, pendingAdjustment];
 }
 
 class WalletFailure extends WalletState {
