@@ -59,9 +59,17 @@ class SyncRepository {
             failed++;
           }
         } on PostgrestException catch (e) {
+          // The receiver already pushed this UUID — server settled it. Mark
+          // synced locally so the row leaves the pending queue and the synced
+          // counter increments (not failed).
+          if (e.code == '23505') {
+            await _local.markSynced(id);
+            synced++;
+            continue;
+          }
           // Transient: sender chain hasn't synced yet — leave pending to retry.
           if (_isInsufficientFunds(e)) continue;
-          // Permanent rejection (bad signature, constraint violation, etc.)
+          // Permanent rejection (bad signature, other constraint, etc.)
           await _local.markRejected(id, e.message);
           failed++;
         } on SocketException {
