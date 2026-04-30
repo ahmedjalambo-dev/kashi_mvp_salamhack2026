@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/components/loading_view.dart';
+import '../../sync/state/sync_cubit.dart';
 import '../state/receive_cubit.dart';
 import '../state/receive_state.dart';
 import 'components/scanner_view.dart';
@@ -13,29 +14,34 @@ class ReceiveScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Receive')),
-      body: BlocBuilder<ReceiveCubit, ReceiveState>(
-        builder: (context, state) {
-          final cubit = context.read<ReceiveCubit>();
-          return switch (state) {
-            ReceiveScanning() => ScannerView(onDetect: cubit.onScan),
-            ReceiveVerifying() => const LoadingView(message: 'Verifying signature…'),
-            ReceiveSuccess(:final payload) => _ResultView(
-                title: 'Saved as pending sync',
-                message:
-                    'Received ${payload.amount.toStringAsFixed(2)}.\nWill sync on next online check.',
-                onAction: cubit.rescan,
-                actionLabel: 'Scan another',
-                isError: false,
-              ),
-            ReceiveFailure(:final message) => _ResultView(
-                title: 'Cannot accept',
-                message: message,
-                onAction: cubit.rescan,
-                actionLabel: 'Try again',
-                isError: true,
-              ),
-          };
-        },
+      body: BlocListener<ReceiveCubit, ReceiveState>(
+        listenWhen: (_, s) => s is ReceiveSuccess,
+        listener: (context, _) => context.read<SyncCubit>().runOnce(),
+        child: BlocBuilder<ReceiveCubit, ReceiveState>(
+          builder: (context, state) {
+            final cubit = context.read<ReceiveCubit>();
+            return switch (state) {
+              ReceiveScanning() => ScannerView(onDetect: cubit.onScan),
+              ReceiveVerifying() =>
+                const LoadingView(message: 'Verifying signature…'),
+              ReceiveSuccess(:final payload) => _ResultView(
+                  title: 'Saved as pending sync',
+                  message:
+                      'Received ${payload.amount.toStringAsFixed(2)}.\nWill sync on next online check.',
+                  onAction: cubit.rescan,
+                  actionLabel: 'Scan another',
+                  isError: false,
+                ),
+              ReceiveFailure(:final message) => _ResultView(
+                  title: 'Cannot accept',
+                  message: message,
+                  onAction: cubit.rescan,
+                  actionLabel: 'Try again',
+                  isError: true,
+                ),
+            };
+          },
+        ),
       ),
     );
   }

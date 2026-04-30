@@ -9,4 +9,5 @@ class SyncLocalService {
   Future<void> markSynced(String id) => _pending.markSynced(id);
   Future<void> markRejected(String id, String reason) =>
       _pending.markRejected(id, reason);
+  Future<int> pendingCount() => _pending.pendingCount();
 }

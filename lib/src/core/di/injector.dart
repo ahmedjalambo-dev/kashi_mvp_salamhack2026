@@ -43,6 +43,7 @@ void configureDependencies() {
       secureStorage: getIt<SecureStorage>(),
       signer: getIt<EcdsaSigner>(),
       errors: getIt<ErrorHandler>(),
+      pendingTx: getIt<PendingTxLocalService>(),
     ),
   );
 

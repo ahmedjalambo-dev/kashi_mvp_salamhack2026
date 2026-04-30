@@ -58,13 +58,14 @@ class _WalletScreenState extends State<WalletScreen> {
                 message: message,
                 onRetry: () => context.read<WalletCubit>().initialize(),
               ),
-            WalletReady(:final wallet) => RefreshIndicator(
+            WalletReady(:final wallet, :final pendingOut) => RefreshIndicator(
                 onRefresh: () => context.read<WalletCubit>().refresh(),
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
                     BalanceCard(
                       balance: wallet.balance,
+                      pendingOut: pendingOut,
                       publicKey: wallet.publicKey,
                     ),
                     const SizedBox(height: 24),

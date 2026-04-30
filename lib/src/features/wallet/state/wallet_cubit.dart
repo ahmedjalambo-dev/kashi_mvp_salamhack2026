@@ -14,7 +14,8 @@ class WalletCubit extends Cubit<WalletState> {
     final result = await _repository.initializeWallet();
     switch (result) {
       case Success(:final data):
-        emit(WalletReady(data));
+        final pendingOut = await _repository.pendingOutgoing(data.publicKey);
+        emit(WalletReady(data, pendingOut: pendingOut));
       case Failure(:final error):
         emit(WalletFailure(error.message));
     }
@@ -26,7 +27,8 @@ class WalletCubit extends Cubit<WalletState> {
     final result = await _repository.refresh(current.wallet.publicKey);
     switch (result) {
       case Success(:final data):
-        emit(WalletReady(data));
+        final pendingOut = await _repository.pendingOutgoing(data.publicKey);
+        emit(WalletReady(data, pendingOut: pendingOut));
       case Failure(:final error):
         emit(WalletFailure(error.message));
     }

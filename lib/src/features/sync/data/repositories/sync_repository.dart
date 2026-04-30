@@ -36,7 +36,7 @@ class SyncRepository {
       for (final row in rows) {
         final id = row['id'] as String;
         try {
-          await _remote.push(
+          final response = await _remote.push(
             id: id,
             senderPublicKey: row['sender_public_key'] as String,
             receiverPublicKey: row['receiver_public_key'] as String,
@@ -47,11 +47,22 @@ class SyncRepository {
                 .cast<String, dynamic>(),
             clientCreatedAt:
                 DateTime.parse(row['client_created_at'] as String),
+            expiresAt: DateTime.parse(row['expires_at'] as String),
           );
-          await _local.markSynced(id);
-          synced++;
+          // A 'duplicate' status means the server already processed this TX
+          // (idempotent re-delivery). Count it as synced.
+          final status = response['status'] as String? ?? 'ok';
+          if (status == 'ok' || status == 'duplicate') {
+            await _local.markSynced(id);
+            synced++;
+          } else {
+            await _local.markRejected(id, 'server status: $status');
+            failed++;
+          }
         } on PostgrestException catch (e) {
-          // Permanent rejection (auth/permission/check failures)
+          // Transient: sender chain hasn't synced yet — leave pending to retry.
+          if (_isInsufficientFunds(e)) continue;
+          // Permanent rejection (bad signature, constraint violation, etc.)
           await _local.markRejected(id, e.message);
           failed++;
         } on SocketException {
@@ -64,4 +75,10 @@ class SyncRepository {
       return Failure(_errors.map(e));
     }
   }
+
+  Future<int> pendingCount() => _local.pendingCount();
+
+  // P0001 is a Postgres RAISE EXCEPTION; the message is set by the RPC.
+  bool _isInsufficientFunds(PostgrestException e) =>
+      e.code == 'P0001' && e.message.contains('INSUFFICIENT_FUNDS');
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude the SQLite DB (contains plaintext transaction data) -->
+    <exclude domain="file" path="kashi.db"/>
+    <!-- Exclude Flutter secure storage (contains the ECDSA private key) -->
+    <exclude domain="sharedpref" path="FlutterSecureStorage"/>
+</full-backup-content>

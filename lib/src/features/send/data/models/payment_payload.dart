@@ -7,6 +7,7 @@ class PaymentPayload extends Equatable {
   final double amount;
   final String nonce;
   final DateTime clientCreatedAt;
+  final DateTime expiresAt;
 
   const PaymentPayload({
     required this.id,
@@ -15,6 +16,7 @@ class PaymentPayload extends Equatable {
     required this.amount,
     required this.nonce,
     required this.clientCreatedAt,
+    required this.expiresAt,
   });
 
   Map<String, dynamic> toJson() => {
@@ -24,6 +26,7 @@ class PaymentPayload extends Equatable {
         'amount': amount,
         'nonce': nonce,
         'client_created_at': clientCreatedAt.toUtc().toIso8601String(),
+        'expires_at': expiresAt.toUtc().toIso8601String(),
       };
 
   factory PaymentPayload.fromJson(Map<String, dynamic> json) => PaymentPayload(
@@ -33,6 +36,7 @@ class PaymentPayload extends Equatable {
         amount: (json['amount'] as num).toDouble(),
         nonce: json['nonce'] as String,
         clientCreatedAt: DateTime.parse(json['client_created_at'] as String),
+        expiresAt: DateTime.parse(json['expires_at'] as String),
       );
 
   @override
@@ -43,6 +47,7 @@ class PaymentPayload extends Equatable {
         amount,
         nonce,
         clientCreatedAt,
+        expiresAt,
       ];
 }
 

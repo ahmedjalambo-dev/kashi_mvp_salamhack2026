@@ -18,9 +18,13 @@ class WalletLoading extends WalletState {
 
 class WalletReady extends WalletState {
   final WalletModel wallet;
-  const WalletReady(this.wallet);
+  final double pendingOut;
+  const WalletReady(this.wallet, {this.pendingOut = 0.0});
+
+  double get availableBalance => wallet.balance - pendingOut;
+
   @override
-  List<Object?> get props => [wallet];
+  List<Object?> get props => [wallet, pendingOut];
 }
 
 class WalletFailure extends WalletState {

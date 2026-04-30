@@ -4,6 +4,7 @@ import '../../../../core/network/error_handler.dart';
 import '../../../../core/network/error_model.dart';
 import '../../../../core/network/result.dart';
 import '../../../../core/services/secure_storage.dart';
+import '../../../receive/data/services/pending_tx_local_service.dart';
 import '../models/wallet_model.dart';
 import '../services/wallet_remote_service.dart';
 
@@ -13,15 +14,18 @@ class WalletRepository {
     required SecureStorage secureStorage,
     required EcdsaSigner signer,
     required ErrorHandler errors,
+    required PendingTxLocalService pendingTx,
   })  : _remote = remote,
         _storage = secureStorage,
         _signer = signer,
-        _errors = errors;
+        _errors = errors,
+        _pendingTx = pendingTx;
 
   final WalletRemoteService _remote;
   final SecureStorage _storage;
   final EcdsaSigner _signer;
   final ErrorHandler _errors;
+  final PendingTxLocalService _pendingTx;
 
   static const _pubKeyStorageKey =
       '${AppConstants.secureStoragePrivateKey}.pub';
@@ -54,6 +58,10 @@ class WalletRepository {
       return Failure(_errors.map(e));
     }
   }
+
+  /// Sum of outgoing pending-sync transactions for this wallet's public key.
+  Future<double> pendingOutgoing(String publicKey) =>
+      _pendingTx.pendingOutgoingSum(publicKey);
 
   Future<Result<WalletModel>> refresh(String publicKey) async {
     try {

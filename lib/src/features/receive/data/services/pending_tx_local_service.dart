@@ -20,9 +20,31 @@ class PendingTxLocalService {
       'signed_payload': jsonEncode(envelope.payload.toJson()),
       'client_created_at':
           envelope.payload.clientCreatedAt.toUtc().toIso8601String(),
+      'expires_at': envelope.payload.expiresAt.toUtc().toIso8601String(),
       'status': 'pending_sync',
       'created_at': DateTime.now().toUtc().toIso8601String(),
     });
+  }
+
+  Future<int> pendingCount() async {
+    final db = await _db.database;
+    final rows = await db.query(
+      AppConstants.pendingTxTable,
+      columns: ['count(*) as n'],
+      where: "status = 'pending_sync'",
+    );
+    return (rows.first['n'] as int? ?? 0);
+  }
+
+  Future<double> pendingOutgoingSum(String senderPublicKey) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      AppConstants.pendingTxTable,
+      columns: ['amount'],
+      where: "sender_public_key = ? and status = 'pending_sync'",
+      whereArgs: [senderPublicKey],
+    );
+    return rows.fold<double>(0.0, (sum, r) => sum + (r['amount'] as num).toDouble());
   }
 
   Future<List<Map<String, Object?>>> queryPending() async {

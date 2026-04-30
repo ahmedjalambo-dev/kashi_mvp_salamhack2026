@@ -15,6 +15,7 @@ class SyncRemoteService {
     required String signature,
     required Map<String, dynamic> signedPayload,
     required DateTime clientCreatedAt,
+    required DateTime expiresAt,
   }) async {
     final result = await _client.rpc(AppConstants.syncRpc, params: {
       'p_id': id,
@@ -25,6 +26,7 @@ class SyncRemoteService {
       'p_signature': signature,
       'p_signed_payload': signedPayload,
       'p_client_created_at': clientCreatedAt.toUtc().toIso8601String(),
+      'p_expires_at': expiresAt.toUtc().toIso8601String(),
     });
     return (result as Map).cast<String, dynamic>();
   }

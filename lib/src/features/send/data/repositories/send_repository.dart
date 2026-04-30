@@ -47,13 +47,15 @@ class SendRepository {
           ErrorModel(message: 'Private key missing', code: 'NO_KEY'),
         );
       }
+      final now = DateTime.now().toUtc();
       final payload = PaymentPayload(
         id: _uuid.v4(),
         senderPublicKey: senderPublicKey,
         receiverPublicKey: receiverPublicKey,
         amount: amount,
         nonce: _nonce(),
-        clientCreatedAt: DateTime.now().toUtc(),
+        clientCreatedAt: now,
+        expiresAt: now.add(const Duration(hours: 1)),
       );
       final signature = _paymentSigner.sign(payload, priv);
       final envelope = SignedEnvelope(payload: payload, signature: signature);

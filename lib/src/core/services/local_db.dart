@@ -19,7 +19,7 @@ class LocalDb {
     final path = p.join(dir.path, AppConstants.sqliteDbName);
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, _) async {
         await db.execute('''
           create table ${AppConstants.pendingTxTable} (
@@ -31,14 +31,26 @@ class LocalDb {
             signature text not null,
             signed_payload text not null,
             client_created_at text not null,
+            expires_at text not null,
             status text not null default 'pending_sync',
             last_error text,
             created_at text not null
           );
         ''');
         await db.execute(
-          'create index pending_status_idx on ${AppConstants.pendingTxTable}(status);',
+          'create index pending_status_idx on ${AppConstants.pendingTxTable}(status, created_at);',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Backfill: existing rows get a 1-hour window from their client_created_at.
+          await db.execute(
+            "alter table ${AppConstants.pendingTxTable} add column expires_at text not null default '1970-01-01T00:00:00.000Z';",
+          );
+          await db.execute(
+            "update ${AppConstants.pendingTxTable} set expires_at = datetime(client_created_at, '+1 hour');",
+          );
+        }
       },
     );
   }

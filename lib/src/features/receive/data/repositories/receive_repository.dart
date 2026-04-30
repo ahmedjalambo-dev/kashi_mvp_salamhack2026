@@ -1,3 +1,5 @@
+import 'package:sqflite/sqflite.dart';
+
 import '../../../../core/crypto/ecdsa_signer.dart';
 import '../../../../core/crypto/payload_codec.dart';
 import '../../../../core/network/error_handler.dart';
@@ -25,6 +27,11 @@ class ReceiveRepository {
   final EcdsaSigner _signer;
   final PayloadCodec _codec;
   final ErrorHandler _errors;
+
+  // QR codes are valid for at most 1 hour; reject anything more than 5 min
+  // in the future (clock skew guard).
+  static const _maxAgeMinutes = 60;
+  static const _maxFutureMinutes = 5;
 
   Future<Result<SignedEnvelope>> handleScan(
     String raw,
@@ -54,6 +61,23 @@ class ReceiveRepository {
         );
       }
 
+      final now = DateTime.now().toUtc();
+
+      // Reject if the sender's clock is more than 5 min ahead of ours.
+      if (p.clientCreatedAt.isAfter(now.add(const Duration(minutes: _maxFutureMinutes)))) {
+        return const Failure(
+          ErrorModel(message: 'QR timestamp is too far in the future', code: 'CLOCK_SKEW'),
+        );
+      }
+
+      // Reject if older than 1 hour or past the payload's own expiry.
+      final age = now.difference(p.clientCreatedAt);
+      if (age.inMinutes > _maxAgeMinutes || now.isAfter(p.expiresAt)) {
+        return const Failure(
+          ErrorModel(message: 'QR has expired', code: 'EXPIRED'),
+        );
+      }
+
       final bytes = _codec.canonicalBytes(p.toJson());
       final ok = _signer.verify(bytes, envelope.signature, p.senderPublicKey);
       if (!ok) {
@@ -62,7 +86,16 @@ class ReceiveRepository {
         );
       }
 
-      await _pending.insert(envelope);
+      try {
+        await _pending.insert(envelope);
+      } on DatabaseException catch (e) {
+        if (e.isUniqueConstraintError()) {
+          return const Failure(
+            ErrorModel(message: 'Already received', code: 'ALREADY_RECEIVED'),
+          );
+        }
+        rethrow;
+      }
       return Success(envelope);
     } catch (e) {
       return Failure(_errors.map(e));
