@@ -33,7 +33,7 @@ class ReceiveRepository {
   static const _maxAgeMinutes = 60;
   static const _maxFutureMinutes = 5;
 
-  Future<Result<SignedEnvelope>> handleScan(
+  Future<Result<SignedEnvelope>> validateScan(
     String raw,
     String myPublicKey,
   ) async {
@@ -94,6 +94,16 @@ class ReceiveRepository {
         );
       }
 
+      return Success(envelope);
+    } catch (e) {
+      return Failure(_errors.map(e));
+    }
+  }
+
+  Future<Result<SignedEnvelope>> acceptValidated(
+    SignedEnvelope envelope,
+  ) async {
+    try {
       try {
         await _pending.insert(envelope);
       } on DatabaseException catch (e) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/components/loading_view.dart';
+import '../../send/data/models/payment_payload.dart';
 import '../../sync/state/sync_cubit.dart';
 import '../state/receive_cubit.dart';
 import '../state/receive_state.dart';
@@ -14,14 +15,44 @@ class ReceiveScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Receive')),
-      body: BlocListener<ReceiveCubit, ReceiveState>(
-        listenWhen: (_, s) => s is ReceiveSuccess,
-        listener: (context, _) => context.read<SyncCubit>().runOnce(),
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<ReceiveCubit, ReceiveState>(
+            listenWhen: (_, s) => s is ReceiveSuccess,
+            listener: (context, _) => context.read<SyncCubit>().runOnce(),
+          ),
+          BlocListener<ReceiveCubit, ReceiveState>(
+            listenWhen: (_, s) => s is ReceiveConfirming,
+            listener: (context, state) {
+              final cubit = context.read<ReceiveCubit>();
+              final payload = (state as ReceiveConfirming).payload;
+              showModalBottomSheet<void>(
+                context: context,
+                isDismissible: false,
+                enableDrag: false,
+                isScrollControlled: true,
+                builder: (sheetCtx) => _ConfirmSheet(
+                  payload: payload,
+                  onAccept: () {
+                    Navigator.pop(sheetCtx);
+                    cubit.confirmTransaction(payload);
+                  },
+                  onCancel: () {
+                    Navigator.pop(sheetCtx);
+                    cubit.cancelTransaction();
+                  },
+                ),
+              );
+            },
+          ),
+        ],
         child: BlocBuilder<ReceiveCubit, ReceiveState>(
           builder: (context, state) {
             final cubit = context.read<ReceiveCubit>();
             return switch (state) {
               ReceiveScanning() => ScannerView(onDetect: cubit.onScan),
+              ReceiveConfirming() =>
+                ScannerView(onDetect: cubit.onScan, paused: true),
               ReceiveVerifying() => const LoadingView(
                 message: 'Verifying signature…',
               ),
@@ -42,6 +73,61 @@ class ReceiveScreen extends StatelessWidget {
               ),
             };
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _ConfirmSheet extends StatelessWidget {
+  const _ConfirmSheet({
+    required this.payload,
+    required this.onAccept,
+    required this.onCancel,
+  });
+
+  final PaymentPayload payload;
+  final VoidCallback onAccept;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Confirm Payment', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 16),
+            Text(
+              payload.amount.toStringAsFixed(2),
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('From', style: theme.textTheme.labelMedium),
+            const SizedBox(height: 4),
+            SelectableText(
+              payload.senderPublicKey,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 32),
+            FilledButton(
+              onPressed: onAccept,
+              child: const Text('Accept & Sync'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: onCancel,
+              child: const Text('Cancel'),
+            ),
+          ],
         ),
       ),
     );

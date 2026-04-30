@@ -16,6 +16,14 @@ class ReceiveVerifying extends ReceiveState {
   const ReceiveVerifying();
 }
 
+class ReceiveConfirming extends ReceiveState {
+  final SignedEnvelope envelope;
+  const ReceiveConfirming(this.envelope);
+  PaymentPayload get payload => envelope.payload;
+  @override
+  List<Object?> get props => [envelope];
+}
+
 class ReceiveSuccess extends ReceiveState {
   final PaymentPayload payload;
   const ReceiveSuccess(this.payload);
