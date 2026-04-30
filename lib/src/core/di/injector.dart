@@ -21,6 +21,7 @@ import '../../features/sync/data/services/sync_local_service.dart';
 import '../../features/sync/data/services/sync_remote_service.dart';
 import '../../features/sync/state/sync_cubit.dart';
 import '../../features/wallet/data/repositories/wallet_repository.dart';
+import '../../features/wallet/data/services/wallet_local_service.dart';
 import '../../features/wallet/data/services/wallet_remote_service.dart';
 
 final getIt = GetIt.instance;
@@ -37,6 +38,10 @@ void configureDependencies() {
   getIt.registerLazySingleton(() => const PayloadCodec());
   getIt.registerLazySingleton(() => const Uuid());
 
+  // Shared local services (registered early; referenced by Wallet + Send)
+  getIt.registerLazySingleton(() => PendingTxLocalService());
+  getIt.registerLazySingleton(() => WalletLocalService());
+
   // Wallet
   getIt.registerLazySingleton(
     () => WalletRemoteService(getIt<SupabaseClient>()),
@@ -44,6 +49,7 @@ void configureDependencies() {
   getIt.registerLazySingleton(
     () => WalletRepository(
       remote: getIt<WalletRemoteService>(),
+      local: getIt<WalletLocalService>(),
       secureStorage: getIt<SecureStorage>(),
       signer: getIt<EcdsaSigner>(),
       errors: getIt<ErrorHandler>(),
@@ -64,12 +70,13 @@ void configureDependencies() {
       secureStorage: getIt<SecureStorage>(),
       uuid: getIt<Uuid>(),
       errors: getIt<ErrorHandler>(),
+      walletLocal: getIt<WalletLocalService>(),
+      pendingTx: getIt<PendingTxLocalService>(),
     ),
   );
 
   // Receive
   getIt.registerLazySingleton(() => const ScannerService());
-  getIt.registerLazySingleton(() => PendingTxLocalService());
   getIt.registerLazySingleton(
     () => ReceiveRepository(
       scanner: getIt<ScannerService>(),

@@ -4,6 +4,7 @@ class AppConstants {
   static const sqliteDbName = 'kashi.db';
   static const pendingTxTable = 'pending_transactions';
   static const transactionsCacheTable = 'transactions_cache';
+  static const walletCacheTable = 'wallet_cache';
 
   static const secureStoragePrivateKey = 'kashi.privateKey';
   static const sharedPublicKeyPref = 'kashi.publicKey';

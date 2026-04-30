@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
-import '../data/models/wallet_model.dart';
 import '../data/repositories/wallet_repository.dart';
 import 'wallet_state.dart';
 
@@ -12,29 +11,32 @@ class WalletCubit extends Cubit<WalletState> {
 
   Future<void> initialize() async {
     emit(const WalletLoading());
+
+    // Cache-first: surface the last-known balance immediately so the user
+    // is never stuck on a loading screen (or shown $0) while offline.
+    final publicKey = await _tryEnsureKeyPair();
+    if (publicKey != null) {
+      final cached = await _repository.loadCached(publicKey);
+      if (cached != null) {
+        final pendingOut = await _repository.pendingOutgoing(publicKey);
+        emit(WalletReady(cached, pendingOut: pendingOut));
+        // Fire remote refresh in the background without awaiting. If it
+        // succeeds the UI will update; if it fails we keep the cached state.
+        _silentRemoteRefresh(publicKey);
+        return;
+      }
+    }
+
+    // No cache yet (first ever launch) — must complete the remote round-trip.
     final result = await _repository.initializeWallet();
     switch (result) {
       case Success(:final data):
         final pendingOut = await _repository.pendingOutgoing(data.publicKey);
         emit(WalletReady(data, pendingOut: pendingOut));
       case Failure(:final error):
-        // Offline-tolerant bootstrap: if a key pair already exists on this
-        // device the user has used the app before, so we can still render
-        // the wallet shell (with a 0 balance until the next online refresh)
-        // and let Send/Receive/History work offline. Only fall through to
-        // WalletFailure when there's no cached identity to fall back on.
-        try {
-          final publicKey = await _repository.ensureKeyPair();
-          final pendingOut = await _repository.pendingOutgoing(publicKey);
-          emit(
-            WalletReady(
-              WalletModel(id: 'offline', publicKey: publicKey, balance: 0),
-              pendingOut: pendingOut,
-            ),
-          );
-        } catch (_) {
-          emit(WalletFailure(error.message));
-        }
+        // Truly first launch with no network and no cached key — we can't
+        // do anything useful. Let the user retry once online.
+        emit(WalletFailure(error.message));
     }
   }
 
@@ -48,14 +50,38 @@ class WalletCubit extends Cubit<WalletState> {
         emit(WalletReady(data, pendingOut: pendingOut));
       case Failure():
         // Refresh failed (likely offline). Keep the existing WalletReady so
-        // the user can keep interacting with cached balance + pending list;
-        // the OfflineBanner already communicates the connectivity state.
-        // Recompute pendingOut from local storage so the offline-created
-        // outgoing transactions still show up immediately.
+        // the user can keep interacting; OfflineBanner communicates the state.
         final pendingOut = await _repository.pendingOutgoing(
           current.wallet.publicKey,
         );
         emit(WalletReady(current.wallet, pendingOut: pendingOut));
+    }
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+
+  Future<String?> _tryEnsureKeyPair() async {
+    try {
+      return await _repository.ensureKeyPair();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _silentRemoteRefresh(String publicKey) async {
+    try {
+      final result = await _repository.initializeWallet();
+      if (isClosed) return;
+      switch (result) {
+        case Success(:final data):
+          final pendingOut = await _repository.pendingOutgoing(data.publicKey);
+          if (!isClosed) emit(WalletReady(data, pendingOut: pendingOut));
+        case Failure():
+          // Stay on cached state — already emitted above.
+          break;
+      }
+    } catch (_) {
+      // Swallow — the cached state is already displayed.
     }
   }
 }

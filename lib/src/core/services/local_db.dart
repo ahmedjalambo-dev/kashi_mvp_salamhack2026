@@ -19,7 +19,7 @@ class LocalDb {
     final path = p.join(dir.path, AppConstants.sqliteDbName);
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, _) async {
         await db.execute('''
           create table ${AppConstants.pendingTxTable} (
@@ -41,6 +41,7 @@ class LocalDb {
           'create index pending_status_idx on ${AppConstants.pendingTxTable}(status, created_at);',
         );
         await _createTransactionsCache(db);
+        await _createWalletCache(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -54,8 +55,21 @@ class LocalDb {
         if (oldVersion < 3) {
           await _createTransactionsCache(db);
         }
+        if (oldVersion < 4) {
+          await _createWalletCache(db);
+        }
       },
     );
+  }
+
+  Future<void> _createWalletCache(Database db) async {
+    await db.execute('''
+      create table ${AppConstants.walletCacheTable} (
+        public_key text primary key,
+        balance real not null,
+        updated_at text not null
+      );
+    ''');
   }
 
   Future<void> _createTransactionsCache(Database db) async {

@@ -6,22 +6,26 @@ import '../../../../core/network/result.dart';
 import '../../../../core/services/secure_storage.dart';
 import '../../../receive/data/services/pending_tx_local_service.dart';
 import '../models/wallet_model.dart';
+import '../services/wallet_local_service.dart';
 import '../services/wallet_remote_service.dart';
 
 class WalletRepository {
   WalletRepository({
     required WalletRemoteService remote,
+    required WalletLocalService local,
     required SecureStorage secureStorage,
     required EcdsaSigner signer,
     required ErrorHandler errors,
     required PendingTxLocalService pendingTx,
   }) : _remote = remote,
+       _local = local,
        _storage = secureStorage,
        _signer = signer,
        _errors = errors,
        _pendingTx = pendingTx;
 
   final WalletRemoteService _remote;
+  final WalletLocalService _local;
   final SecureStorage _storage;
   final EcdsaSigner _signer;
   final ErrorHandler _errors;
@@ -45,6 +49,11 @@ class WalletRepository {
     return pair.publicKeyBase64;
   }
 
+  /// Last balance persisted from a successful remote fetch. Returns null if
+  /// the app has never been online with this key.
+  Future<WalletModel?> loadCached(String publicKey) =>
+      _local.loadCached(publicKey);
+
   Future<Result<WalletModel>> initializeWallet({String? deviceId}) async {
     try {
       await _remote.ensureSignedIn();
@@ -53,6 +62,7 @@ class WalletRepository {
         publicKey: publicKey,
         deviceId: deviceId,
       );
+      await _local.cacheBalance(wallet.publicKey, wallet.balance);
       return Success(wallet);
     } catch (e) {
       return Failure(_errors.map(e));
@@ -71,6 +81,7 @@ class WalletRepository {
           ErrorModel(message: 'Wallet not found', code: 'NOT_FOUND'),
         );
       }
+      await _local.cacheBalance(wallet.publicKey, wallet.balance);
       return Success(wallet);
     } catch (e) {
       return Failure(_errors.map(e));
