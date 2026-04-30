@@ -111,4 +111,18 @@ class PendingTxLocalService {
     );
     _notify();
   }
+
+  /// Flip stale rejected rows that look like duplicate-key errors back to
+  /// pending_sync so the next drain can re-classify them correctly. Runs once
+  /// at app startup via SyncCubit to recover from the pre-fix bug.
+  Future<void> requeueDuplicateRejections() async {
+    final db = await _db.database;
+    final count = await db.rawUpdate(
+      "UPDATE ${AppConstants.pendingTxTable} "
+      "SET status = 'pending_sync', last_error = NULL "
+      "WHERE status = 'rejected' "
+      "AND (last_error LIKE '%duplicate%' OR last_error LIKE '%unique%')",
+    );
+    if (count > 0) _notify();
+  }
 }

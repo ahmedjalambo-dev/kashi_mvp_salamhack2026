@@ -152,4 +152,117 @@ void main() {
     expect(outcome.failed, 0);
     verify(() => local.markSynced('tx-uuid-1')).called(1);
   });
+
+  // _isDuplicate broadened matcher tests
+
+  test('P0001 with "duplicate key" message is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenThrow(
+      PostgrestException(
+        code: 'P0001',
+        message: 'duplicate key value violates unique constraint',
+      ),
+    );
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('HTTP 409 PostgrestException is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenThrow(
+      PostgrestException(code: '409', message: 'conflict'),
+    );
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('RPC status "exists" is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenAnswer((_) async => {'status': 'exists'});
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('RPC status "already_synced" is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenAnswer((_) async => {'status': 'already_synced'});
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('requeueDuplicateRejections delegates to local service', () async {
+    when(() => local.requeueDuplicateRejections()).thenAnswer((_) async {});
+
+    await repo.requeueDuplicateRejections();
+
+    verify(() => local.requeueDuplicateRejections()).called(1);
+  });
 }

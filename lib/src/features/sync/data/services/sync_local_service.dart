@@ -10,4 +10,6 @@ class SyncLocalService {
   Future<void> markRejected(String id, String reason) =>
       _pending.markRejected(id, reason);
   Future<int> pendingCount() => _pending.pendingCount();
+  Future<void> requeueDuplicateRejections() =>
+      _pending.requeueDuplicateRejections();
 }

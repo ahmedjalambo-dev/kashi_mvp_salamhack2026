@@ -48,10 +48,11 @@ class SyncRepository {
             clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
             expiresAt: DateTime.parse(row['expires_at'] as String),
           );
-          // A 'duplicate' status means the server already processed this TX
-          // (idempotent re-delivery). Count it as synced.
+          // A 'duplicate'/'exists'/'already_synced' status means the server
+          // already processed this TX (idempotent re-delivery). Count as synced.
           final status = response['status'] as String? ?? 'ok';
-          if (status == 'ok' || status == 'duplicate') {
+          const okStatuses = {'ok', 'duplicate', 'exists', 'already_synced'};
+          if (okStatuses.contains(status)) {
             await _local.markSynced(id);
             synced++;
           } else {
@@ -62,7 +63,7 @@ class SyncRepository {
           // The receiver already pushed this UUID — server settled it. Mark
           // synced locally so the row leaves the pending queue and the synced
           // counter increments (not failed).
-          if (e.code == '23505') {
+          if (_isDuplicate(e)) {
             await _local.markSynced(id);
             synced++;
             continue;
@@ -84,6 +85,21 @@ class SyncRepository {
   }
 
   Future<int> pendingCount() => _local.pendingCount();
+
+  Future<void> requeueDuplicateRejections() =>
+      _local.requeueDuplicateRejections();
+
+  // Recognises every plausible duplicate signal a Supabase RPC can produce:
+  // SQLSTATE 23505, PostgREST HTTP 409, or a P0001 RAISE EXCEPTION whose
+  // message contains the duplicate text.
+  bool _isDuplicate(PostgrestException e) {
+    if (e.code == '23505') return true;
+    if (e.code == '409') return true;
+    final msg = e.message.toLowerCase();
+    return msg.contains('duplicate key') ||
+        msg.contains('unique constraint') ||
+        msg.contains('already exists');
+  }
 
   // P0001 is a Postgres RAISE EXCEPTION; the message is set by the RPC.
   bool _isInsufficientFunds(PostgrestException e) =>
