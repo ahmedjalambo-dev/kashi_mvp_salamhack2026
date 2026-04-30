@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -7,6 +9,9 @@ import '../models/wallet_model.dart';
 class WalletLocalService {
   WalletLocalService([LocalDb? db]) : _db = db ?? LocalDb.instance;
   final LocalDb _db;
+
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+  Stream<void> get onChange => _changes.stream;
 
   Future<WalletModel?> loadCached(String publicKey) async {
     final db = await _db.database;
@@ -31,5 +36,6 @@ class WalletLocalService {
       'balance': balance,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    if (!_changes.isClosed) _changes.add(null);
   }
 }

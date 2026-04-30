@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/crypto/ecdsa_signer.dart';
 import '../../../../core/network/error_handler.dart';
@@ -33,6 +35,9 @@ class WalletRepository {
 
   static const _pubKeyStorageKey =
       '${AppConstants.secureStoragePrivateKey}.pub';
+
+  /// Fires whenever the local wallet cache is updated (e.g. after reconciliation).
+  Stream<void> get onCacheChange => _local.onChange;
 
   /// Returns the public key, generating + persisting a new key pair if needed.
   Future<String> ensureKeyPair() async {

@@ -117,7 +117,7 @@ class SendRepository {
     double amount, // amount kept for API symmetry; the math is done via pendingOutgoingSum
   ) async {
     try {
-      final affected = await _pendingTx.markCancelled(transactionId);
+      final affected = await _pendingTx.markVoidedLocally(transactionId);
       if (affected == 0) {
         return const Failure(
           ErrorModel(

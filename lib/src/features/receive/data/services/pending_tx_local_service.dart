@@ -112,19 +112,43 @@ class PendingTxLocalService {
     _notify();
   }
 
-  /// Cancels an outgoing pending row, returning the number of rows affected.
-  /// Returns 0 if the row was already settled (synced/rejected) — the caller
-  /// should treat that as "too late to cancel".
-  Future<int> markCancelled(String id) async {
+  /// Marks an outgoing row as voided locally (optimistic cancel).
+  /// Only affects rows still in `pending_sync`; returns 0 if already settled.
+  Future<int> markVoidedLocally(String id) async {
     final db = await _db.database;
     final affected = await db.update(
       AppConstants.pendingTxTable,
-      {'status': 'cancelled', 'last_error': null},
+      {'status': 'voided_locally', 'last_error': null},
       where: 'id = ? AND status = ?',
       whereArgs: [id, 'pending_sync'],
     );
     if (affected > 0) _notify();
     return affected;
+  }
+
+  /// Reconciliation: flip a `voided_locally` row to `synced` when the server
+  /// confirms the receiver already settled it. Gated on `voided_locally` so
+  /// rows in other states are never accidentally overwritten.
+  Future<void> markSyncedFromVoided(String id) async {
+    final db = await _db.database;
+    final affected = await db.update(
+      AppConstants.pendingTxTable,
+      {'status': 'synced', 'last_error': null},
+      where: 'id = ? AND status = ?',
+      whereArgs: [id, 'voided_locally'],
+    );
+    if (affected > 0) _notify();
+  }
+
+  /// Returns all rows with the given status, ordered by created_at asc.
+  Future<List<Map<String, Object?>>> queryByStatus(String status) async {
+    final db = await _db.database;
+    return db.query(
+      AppConstants.pendingTxTable,
+      where: 'status = ?',
+      whereArgs: [status],
+      orderBy: 'created_at asc',
+    );
   }
 
   /// Flip stale rejected rows that look like duplicate-key errors back to

@@ -8,30 +8,41 @@ import 'package:kashi_mvp_salamhack2026/src/core/services/connectivity_service.d
 import 'package:kashi_mvp_salamhack2026/src/features/sync/data/repositories/sync_repository.dart';
 import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_cubit.dart';
 import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_state.dart';
+import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/repositories/wallet_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockSyncRepository extends Mock implements SyncRepository {}
 
 class _MockConnectivityService extends Mock implements ConnectivityService {}
 
+class _MockWalletRepository extends Mock implements WalletRepository {}
+
 void main() {
   late _MockSyncRepository repository;
   late _MockConnectivityService connectivity;
+  late _MockWalletRepository walletRepository;
 
   setUp(() {
     repository = _MockSyncRepository();
     connectivity = _MockConnectivityService();
+    walletRepository = _MockWalletRepository();
 
     when(() => connectivity.onStatusChange)
         .thenAnswer((_) => const Stream.empty());
     when(() => repository.requeueDuplicateRejections())
         .thenAnswer((_) async {});
     when(() => repository.pendingCount()).thenAnswer((_) async => 0);
+    when(() => walletRepository.ensureKeyPair())
+        .thenAnswer((_) async => 'my-pub-key');
+    when(() => repository.pullAndReconcile(any())).thenAnswer(
+      (_) async => const Success(ReconcileOutcome(0, null)),
+    );
   });
 
   SyncCubit buildCubit() => SyncCubit(
         repository: repository,
         connectivity: connectivity,
+        walletRepository: walletRepository,
       );
 
   group('SyncCubit.runOnce', () {
@@ -45,7 +56,7 @@ void main() {
       act: (c) => c.runOnce(),
       expect: () => [
         const SyncRunning(),
-        const SyncIdle(synced: 1, failed: 0),
+        const SyncIdle(synced: 1, failed: 0, reconciled: 0),
       ],
     );
 
@@ -59,7 +70,7 @@ void main() {
       act: (c) => c.runOnce(),
       expect: () => [
         const SyncRunning(),
-        const SyncIdle(synced: 0, failed: 1),
+        const SyncIdle(synced: 0, failed: 1, reconciled: 0),
       ],
     );
 
@@ -95,6 +106,41 @@ void main() {
         const SyncFailure('err'),
         const SyncRunning(),
         const SyncFailure('err'),
+      ],
+    );
+
+    blocTest<SyncCubit, SyncState>(
+      'reconciled count from pullAndReconcile is reflected in SyncIdle',
+      build: buildCubit,
+      setUp: () {
+        when(() => repository.drainPending())
+            .thenAnswer((_) async => const Success(SyncOutcome(0, 0)));
+        when(() => repository.pullAndReconcile(any())).thenAnswer(
+          (_) async => const Success(ReconcileOutcome(2, 900.0)),
+        );
+      },
+      act: (c) => c.runOnce(),
+      expect: () => [
+        const SyncRunning(),
+        const SyncIdle(synced: 0, failed: 0, reconciled: 2),
+      ],
+    );
+
+    blocTest<SyncCubit, SyncState>(
+      'pullAndReconcile failure is swallowed — still emits SyncIdle',
+      build: buildCubit,
+      setUp: () {
+        when(() => repository.drainPending())
+            .thenAnswer((_) async => const Success(SyncOutcome(1, 0)));
+        when(() => repository.pullAndReconcile(any())).thenAnswer(
+          (_) async =>
+              const Failure(ErrorModel(message: 'Offline', code: 'OFFLINE')),
+        );
+      },
+      act: (c) => c.runOnce(),
+      expect: () => [
+        const SyncRunning(),
+        const SyncIdle(synced: 1, failed: 0, reconciled: 0),
       ],
     );
   });

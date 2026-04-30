@@ -19,7 +19,7 @@ class LocalDb {
     final path = p.join(dir.path, AppConstants.sqliteDbName);
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, _) async {
         await db.execute('''
           create table ${AppConstants.pendingTxTable} (
@@ -57,6 +57,11 @@ class LocalDb {
         }
         if (oldVersion < 4) {
           await _createWalletCache(db);
+        }
+        if (oldVersion < 5) {
+          await db.execute(
+            "UPDATE ${AppConstants.pendingTxTable} SET status = 'voided_locally' WHERE status = 'cancelled';",
+          );
         }
       },
     );
