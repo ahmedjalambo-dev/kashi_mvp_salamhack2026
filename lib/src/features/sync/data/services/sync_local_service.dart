@@ -2,7 +2,7 @@ import '../../../receive/data/services/pending_tx_local_service.dart';
 
 class SyncLocalService {
   SyncLocalService([PendingTxLocalService? pending])
-      : _pending = pending ?? PendingTxLocalService();
+    : _pending = pending ?? PendingTxLocalService();
   final PendingTxLocalService _pending;
 
   Future<List<Map<String, Object?>>> pending() => _pending.queryPending();

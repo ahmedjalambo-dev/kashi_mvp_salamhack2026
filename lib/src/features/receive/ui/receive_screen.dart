@@ -22,23 +22,24 @@ class ReceiveScreen extends StatelessWidget {
             final cubit = context.read<ReceiveCubit>();
             return switch (state) {
               ReceiveScanning() => ScannerView(onDetect: cubit.onScan),
-              ReceiveVerifying() =>
-                const LoadingView(message: 'Verifying signature…'),
+              ReceiveVerifying() => const LoadingView(
+                message: 'Verifying signature…',
+              ),
               ReceiveSuccess(:final payload) => _ResultView(
-                  title: 'Saved as pending sync',
-                  message:
-                      'Received ${payload.amount.toStringAsFixed(2)}.\nWill sync on next online check.',
-                  onAction: cubit.rescan,
-                  actionLabel: 'Scan another',
-                  isError: false,
-                ),
+                title: 'Saved as pending sync',
+                message:
+                    'Received ${payload.amount.toStringAsFixed(2)}.\nWill sync on next online check.',
+                onAction: cubit.rescan,
+                actionLabel: 'Scan another',
+                isError: false,
+              ),
               ReceiveFailure(:final message) => _ResultView(
-                  title: 'Cannot accept',
-                  message: message,
-                  onAction: cubit.rescan,
-                  actionLabel: 'Try again',
-                  isError: true,
-                ),
+                title: 'Cannot accept',
+                message: message,
+                onAction: cubit.rescan,
+                actionLabel: 'Try again',
+                isError: true,
+              ),
             };
           },
         ),

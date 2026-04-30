@@ -1,0 +1,108 @@
+import 'package:equatable/equatable.dart';
+
+enum TxDirection { sent, received }
+
+enum TxStatus { pending, confirmed, rejected }
+
+class TransactionModel extends Equatable {
+  final String id;
+  final String senderPublicKey;
+  final String receiverPublicKey;
+  final double amount;
+  final TxStatus status;
+  final DateTime clientCreatedAt;
+  final DateTime? syncedAt;
+  final String? lastError;
+
+  const TransactionModel({
+    required this.id,
+    required this.senderPublicKey,
+    required this.receiverPublicKey,
+    required this.amount,
+    required this.status,
+    required this.clientCreatedAt,
+    this.syncedAt,
+    this.lastError,
+  });
+
+  TxDirection directionFor(String myPublicKey) =>
+      senderPublicKey == myPublicKey ? TxDirection.sent : TxDirection.received;
+
+  String counterpartyFor(String myPublicKey) =>
+      directionFor(myPublicKey) == TxDirection.sent
+      ? receiverPublicKey
+      : senderPublicKey;
+
+  @override
+  List<Object?> get props => [
+    id,
+    senderPublicKey,
+    receiverPublicKey,
+    amount,
+    status,
+    clientCreatedAt,
+    syncedAt,
+    lastError,
+  ];
+
+  factory TransactionModel.fromRemote(Map<String, dynamic> json) {
+    final rawStatus = json['status'] as String? ?? 'confirmed';
+    return TransactionModel(
+      id: json['id'] as String,
+      senderPublicKey: json['sender_public_key'] as String,
+      receiverPublicKey: json['receiver_public_key'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      status: rawStatus == 'rejected' ? TxStatus.rejected : TxStatus.confirmed,
+      clientCreatedAt: DateTime.parse(json['client_created_at'] as String),
+      syncedAt: json['synced_at'] != null
+          ? DateTime.parse(json['synced_at'] as String)
+          : null,
+    );
+  }
+
+  Map<String, Object?> toCacheRow() => {
+    'id': id,
+    'sender_public_key': senderPublicKey,
+    'receiver_public_key': receiverPublicKey,
+    'amount': amount,
+    'status': switch (status) {
+      TxStatus.confirmed => 'confirmed',
+      TxStatus.rejected => 'rejected',
+      TxStatus.pending => 'pending',
+    },
+    'client_created_at': clientCreatedAt.toUtc().toIso8601String(),
+    'synced_at': syncedAt?.toUtc().toIso8601String(),
+  };
+
+  factory TransactionModel.fromCacheRow(Map<String, Object?> row) {
+    final s = row['status'] as String? ?? 'confirmed';
+    return TransactionModel(
+      id: row['id'] as String,
+      senderPublicKey: row['sender_public_key'] as String,
+      receiverPublicKey: row['receiver_public_key'] as String,
+      amount: (row['amount'] as num).toDouble(),
+      status: switch (s) {
+        'rejected' => TxStatus.rejected,
+        'pending' => TxStatus.pending,
+        _ => TxStatus.confirmed,
+      },
+      clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
+      syncedAt: row['synced_at'] != null
+          ? DateTime.parse(row['synced_at'] as String)
+          : null,
+    );
+  }
+
+  /// Build a `pending` transaction view from a row in `pending_transactions`.
+  factory TransactionModel.fromPendingRow(Map<String, Object?> row) {
+    return TransactionModel(
+      id: row['id'] as String,
+      senderPublicKey: row['sender_public_key'] as String,
+      receiverPublicKey: row['receiver_public_key'] as String,
+      amount: (row['amount'] as num).toDouble(),
+      status: TxStatus.pending,
+      clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
+      lastError: row['last_error'] as String?,
+    );
+  }
+}

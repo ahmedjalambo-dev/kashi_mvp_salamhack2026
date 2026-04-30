@@ -15,11 +15,11 @@ class WalletRepository {
     required EcdsaSigner signer,
     required ErrorHandler errors,
     required PendingTxLocalService pendingTx,
-  })  : _remote = remote,
-        _storage = secureStorage,
-        _signer = signer,
-        _errors = errors,
-        _pendingTx = pendingTx;
+  }) : _remote = remote,
+       _storage = secureStorage,
+       _signer = signer,
+       _errors = errors,
+       _pendingTx = pendingTx;
 
   final WalletRemoteService _remote;
   final SecureStorage _storage;

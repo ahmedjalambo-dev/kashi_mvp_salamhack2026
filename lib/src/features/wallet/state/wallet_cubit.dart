@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
+import '../data/models/wallet_model.dart';
 import '../data/repositories/wallet_repository.dart';
 import 'wallet_state.dart';
 
@@ -17,7 +18,23 @@ class WalletCubit extends Cubit<WalletState> {
         final pendingOut = await _repository.pendingOutgoing(data.publicKey);
         emit(WalletReady(data, pendingOut: pendingOut));
       case Failure(:final error):
-        emit(WalletFailure(error.message));
+        // Offline-tolerant bootstrap: if a key pair already exists on this
+        // device the user has used the app before, so we can still render
+        // the wallet shell (with a 0 balance until the next online refresh)
+        // and let Send/Receive/History work offline. Only fall through to
+        // WalletFailure when there's no cached identity to fall back on.
+        try {
+          final publicKey = await _repository.ensureKeyPair();
+          final pendingOut = await _repository.pendingOutgoing(publicKey);
+          emit(
+            WalletReady(
+              WalletModel(id: 'offline', publicKey: publicKey, balance: 0),
+              pendingOut: pendingOut,
+            ),
+          );
+        } catch (_) {
+          emit(WalletFailure(error.message));
+        }
     }
   }
 
@@ -29,8 +46,16 @@ class WalletCubit extends Cubit<WalletState> {
       case Success(:final data):
         final pendingOut = await _repository.pendingOutgoing(data.publicKey);
         emit(WalletReady(data, pendingOut: pendingOut));
-      case Failure(:final error):
-        emit(WalletFailure(error.message));
+      case Failure():
+        // Refresh failed (likely offline). Keep the existing WalletReady so
+        // the user can keep interacting with cached balance + pending list;
+        // the OfflineBanner already communicates the connectivity state.
+        // Recompute pendingOut from local storage so the offline-created
+        // outgoing transactions still show up immediately.
+        final pendingOut = await _repository.pendingOutgoing(
+          current.wallet.publicKey,
+        );
+        emit(WalletReady(current.wallet, pendingOut: pendingOut));
     }
   }
 }

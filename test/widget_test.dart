@@ -5,8 +5,16 @@ import 'package:kashi_mvp_salamhack2026/src/core/crypto/payload_codec.dart';
 void main() {
   test('canonical encoding sorts keys deterministically', () {
     const codec = PayloadCodec();
-    final a = codec.canonicalEncode({'b': 1, 'a': 2, 'c': {'y': 1, 'x': 2}});
-    final b = codec.canonicalEncode({'c': {'x': 2, 'y': 1}, 'a': 2, 'b': 1});
+    final a = codec.canonicalEncode({
+      'b': 1,
+      'a': 2,
+      'c': {'y': 1, 'x': 2},
+    });
+    final b = codec.canonicalEncode({
+      'c': {'x': 2, 'y': 1},
+      'a': 2,
+      'b': 1,
+    });
     expect(a, equals(b));
   });
 

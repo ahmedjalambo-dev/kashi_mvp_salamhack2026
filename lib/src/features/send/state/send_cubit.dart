@@ -7,8 +7,8 @@ import 'send_state.dart';
 
 class SendCubit extends Cubit<SendState> {
   SendCubit({required SendRepository repository, required this.senderPublicKey})
-      : _repository = repository,
-        super(const SendInitial());
+    : _repository = repository,
+      super(const SendInitial());
 
   final SendRepository _repository;
   final String senderPublicKey;
@@ -30,11 +30,9 @@ class SendCubit extends Cubit<SendState> {
     );
     switch (result) {
       case Success(:final data):
-        emit(SendReady(
-          qrData: data,
-          amount: amount,
-          receiverPublicKey: recipient,
-        ));
+        emit(
+          SendReady(qrData: data, amount: amount, receiverPublicKey: recipient),
+        );
       case Failure(:final error):
         emit(SendFailure(error.message));
     }

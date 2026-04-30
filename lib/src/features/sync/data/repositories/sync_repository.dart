@@ -20,9 +20,9 @@ class SyncRepository {
     required SyncRemoteService remote,
     required SyncLocalService local,
     required ErrorHandler errors,
-  })  : _remote = remote,
-        _local = local,
-        _errors = errors;
+  }) : _remote = remote,
+       _local = local,
+       _errors = errors;
 
   final SyncRemoteService _remote;
   final SyncLocalService _local;
@@ -45,8 +45,7 @@ class SyncRepository {
             signature: row['signature'] as String,
             signedPayload: (jsonDecode(row['signed_payload'] as String) as Map)
                 .cast<String, dynamic>(),
-            clientCreatedAt:
-                DateTime.parse(row['client_created_at'] as String),
+            clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
             expiresAt: DateTime.parse(row['expires_at'] as String),
           );
           // A 'duplicate' status means the server already processed this TX

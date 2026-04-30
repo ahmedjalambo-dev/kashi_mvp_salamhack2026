@@ -46,7 +46,9 @@ class BalanceCard extends StatelessWidget {
             const SizedBox(height: 4),
             SelectableText(
               publicKey,
-              style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
             ),
           ],
         ),

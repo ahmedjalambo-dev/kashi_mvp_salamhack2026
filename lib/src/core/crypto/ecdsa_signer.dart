@@ -46,15 +46,24 @@ class EcdsaSigner {
     final priv = ECPrivateKey(d, _params);
 
     final signer = Signer('SHA-256/ECDSA')
-      ..init(true, ParametersWithRandom(PrivateKeyParameter<ECPrivateKey>(priv), _random));
+      ..init(
+        true,
+        ParametersWithRandom(PrivateKeyParameter<ECPrivateKey>(priv), _random),
+      );
     final sig = signer.generateSignature(message) as ECSignature;
     final r = _unsignedBytes(sig.r, 32);
     final s = _unsignedBytes(sig.s, 32);
-    final out = Uint8List(64)..setRange(0, 32, r)..setRange(32, 64, s);
+    final out = Uint8List(64)
+      ..setRange(0, 32, r)
+      ..setRange(32, 64, s);
     return base64Encode(out);
   }
 
-  bool verify(Uint8List message, String signatureBase64, String publicKeyBase64) {
+  bool verify(
+    Uint8List message,
+    String signatureBase64,
+    String publicKeyBase64,
+  ) {
     try {
       final sigBytes = base64Decode(signatureBase64);
       if (sigBytes.length != 64) return false;

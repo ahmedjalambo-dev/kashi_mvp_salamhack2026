@@ -13,9 +13,9 @@ class SyncCubit extends Cubit<SyncState> {
   SyncCubit({
     required SyncRepository repository,
     required ConnectivityService connectivity,
-  })  : _repository = repository,
-        _connectivity = connectivity,
-        super(const SyncIdle()) {
+  }) : _repository = repository,
+       _connectivity = connectivity,
+       super(const SyncIdle()) {
     _sub = _connectivity.onStatusChange.listen((online) {
       if (online) runOnce();
     });

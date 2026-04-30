@@ -1,0 +1,797 @@
+ ▐▛███▜▌   Claude Code v2.1.119
+▝▜█████▛▘  Opus 4.7 · Claude Pro
+  ▘▘ ▝▝    c:\flutter_apps\kashi_mvp_salamhack2026
+
+❯ <ide_opened_file>The user opened the file                                     
+  c:\flutter_apps\kashi_mvp_salamhack2026\lib\main.dart in the IDE. This may or 
+   may not be related to the current task.</ide_opened_file>                    
+
+❯ I have some specific features and bug fixes I need to implement for my        
+  offline-first P2P transfer app. Please review my existing Flutter codebase    
+  and implement the following four requirements.                                
+                                                                                
+  Given my project structure, please ensure all solutions strictly adhere to    
+  Clean Architecture principles, utilize the Repository pattern, and use        
+  Cubit/Bloc for state management.                                              
+                                                                                
+  Here are the 4 tasks:                                                         
+                                                                                
+  1. Auto-Refresh on Navigation                                                 
+  - The app needs to automatically refresh its state/data whenever the user     
+  navigates between screens.                                                    
+  - Please analyze my current routing setup. Suggest and implement a clean way  
+  to trigger Cubit/Bloc data re-fetches (e.g., using route observers,           
+  `didChangeDependencies`, or Bloc event triggers on screen focus) so the UI is 
+   never stale after pushing or popping routes.                                 
+                                                                                
+  2. Seamless Offline Mode (No Error Screens)                                   
+  - Currently, the app might block the user or show an error screen when there  
+  is no internet. I want to completely remove full-screen internet connection   
+  errors.                                                                       
+  - The user must be able to open and interact with the app offline.            
+  - Implement a global, reactive UI indicator (like a persistent banner or      
+  header beneath the AppBar) that simply says "Offline / No Internet            
+  Connection" when connectivity is lost.                                        
+  - Ensure this global network state is managed efficiently via a Cubit/Bloc    
+  and listens to connection changes in real-time.                               
+                                                                                
+  3. Transaction History (Sent & Received)                                      
+  - Create or update the necessary Use Cases, Repositories, and Cubits to fetch 
+   and display the user's complete transaction history (both sent and           
+  received).                                                                    
+  - Ensure the UI clearly distinguishes between funds sent and funds received.  
+  - This data should ideally be fetched from local storage first for immediate  
+  rendering, and then seamlessly updated from Supabase when online.             
+                                                                                
+  4. Pending Offline Transactions List                                          
+  - Create a dedicated UI section (or integrate it into the transaction         
+  history) to explicitly show "Pending" transactions—these are the P2P          
+  transfers the user initiated offline via QR code that have not yet synced     
+  with Supabase.                                                                
+  - This UI MUST reactively update. When a user creates a new offline           
+  transaction, it should immediately appear in this pending list (tying into    
+  the auto-refresh requirement from Task #1).                                   
+  - Once the internet is restored and the sync to Supabase is successful, these 
+   items should automatically move from the "Pending" state to the completed    
+  "History" state.                                                              
+                                                                                
+  Output Requirements:                                                          
+  - Do not just provide generic code; modify or create the actual files in my   
+  project.                                                                      
+  - Provide a brief summary of the files you touched and the architectural      
+  decisions you made for the global offline header and the navigation-refresh   
+  logic.                                                                        
+  - Ensure all local data querying for the pending/history lists respects the   
+  existing local database implementation.                                       
+
+● I'll start by exploring the codebase to understand the existing architecture
+  before making changes.
+
+  Read 9 files (ctrl+o to expand)
+
+● Now let me set up a todo list and continue exploring.
+
+  Read 14 files (ctrl+o to expand)
+
+● Let me check the transactions table on Supabase and a few remaining files:
+
+  Read 1 file, called Supabase (ctrl+o to expand)
+
+  Called Supabase (ctrl+o to expand)
+
+● I have a clear picture now. Let me check pubspec for connectivity package and
+  then begin implementation.
+
+  Read 1 file (ctrl+o to expand)
+
+● Now I'll start implementing. Let me make a strategic plan:
+
+  Architecture decisions:
+
+  1. NetworkCubit (global, in core/network/network_cubit.dart) — emits
+  NetworkOnline/NetworkOffline from ConnectivityService.onStatusChange. Provided
+   at the MaterialApp level via MultiBlocProvider. Banner is rendered in a
+  _RootShell via MaterialApp.builder so it sits below the AppBar of every
+  screen.
+  2. Auto-refresh on navigation — Add a global RouteObserver<PageRoute> in
+  core/routes/. Screens that need to refresh when navigated back to mix in
+  RouteAware and call cubit refresh in didPopNext. This avoids retrigger on
+  initial push (which initState already handles). This also keeps it clean and
+  Bloc-friendly. Plus, WalletCubit.refresh() already exists.
+  3. Transaction history — Add TransactionModel, HistoryRemoteService (Supabase
+  query on transactions table), HistoryLocalService (cache table
+  transactions_cache), HistoryRepository, HistoryCubit. Local-first → emit
+  cached, then update from remote. Schema bump to v3.
+  4. Pending list reactivity — Add a Stream<void> change-notifier in
+  PendingTxLocalService (broadcast StreamController). Emit on
+  insert/markSynced/markRejected. HistoryCubit (or a PendingCubit) listens and
+  re-queries.
+
+  Given complexity, I'll merge pending + history into a single HistoryCubit for
+  the wallet screen (with sections: Pending / Completed). That matches the
+  spec's "or integrate it into the transaction history."
+
+  Let me start with NetworkCubit:
+
+● Write(lib\src\core\network\network_state.dart)
+  ⎿  Wrote 19 lines to lib\src\core\network\network_state.dart
+       1 import 'package:equatable/equatable.dart';
+       2 
+       3 sealed class NetworkState extends Equatable {
+       4   const NetworkState();
+       5   @override
+       6   List<Object?> get props => [];
+       7 }
+       8 
+       9 class NetworkInitial extends NetworkState {
+      10   const NetworkInitial();
+     … +9 lines (ctrl+o to expand)
+
+● Write(lib\src\core\network\network_cubit.dart)
+  ⎿  Wrote 34 lines to lib\src\core\network\network_cubit.dart
+       2 import 'dart:async';
+       3 import 'package:flutter_bloc/flutter_bloc.dart';
+       4 
+       5 import '../services/connectivity_service.dart';
+       6 import 'network_state.dart';
+       7 
+       8 class NetworkCubit extends Cubit<NetworkState> {
+       9   NetworkCubit(this._connectivity) : super(const NetworkInitial(
+         )) {
+      10     _bootstrap();
+     … +25 lines (ctrl+o to expand)
+
+● Write(lib\src\core\components\offline_banner.dart)
+  ⎿  Wrote 69 lines to lib\src\core\components\offline_banner.dart
+       2 import 'package:flutter_bloc/flutter_bloc.dart';
+       3 
+       4 import '../network/network_cubit.dart';
+       6 import '../network/network_state.dart';
+       7 /// Persistent banner shown beneath the AppBar of every screen w
+         hen the
+         der] so it is offline. Wrap the app's body via [MaterialApp.buil
+       9 /// sits above all routed screens without each screen needing to
+          opt in.
+      10 class OfflineBanner extends StatelessWidget {
+     … +65 lines (ctrl+o to expand)
+
+● Now route observer:
+
+● Write(lib\src\core\routes\route_observer.dart)
+  ⎿  Wrote 51 lines to lib\src\core\routes\route_observer.dart
+       2 import 'package:flutter/material.dart';
+       3 /// Global route observer used to auto-refresh screens when the 
+       4 /// returns to them via Navigator.pop.
+       5 ///
+       6 /// Wired into [MaterialApp.navigatorObservers] in `app.dart`. S
+       7 /// need to re-fetch data on resurface mix in [RouteAware] (via 
+         the
+         h methodoRefreshRouteAware` mixin) and call their cubit's refres
+       9 /// from `didPopNext`.
+      10 final RouteObserver<PageRoute<dynamic>> appRouteObserver =
+     … +46 lines (ctrl+o to expand)
+
+● Now the transactions cache schema. Bump local DB to v3:
+
+● Update(lib\src\core\constants\app_constants.dart)
+  ⎿  Added 1 line
+      3  
+      4    static const sqliteDbName = 'kashi.db';
+      5    static const pendingTxTable = 'pending_transactions';
+      6 +  static const transactionsCacheTable = 'transactions_cache';   
+      7  
+      8    static const secureStoragePrivateKey = 'kashi.privateKey';
+      9    static const sharedPublicKeyPref = 'kashi.publicKey';
+
+● Update(lib\src\core\services\local_db.dart)
+  ⎿  Added 22 lines, removed 2 lines
+      19      final path = p.join(dir.path, AppConstants.sqliteDbName);
+      20      return openDatabase(
+      21        path,
+      22 -      version: 2,                                              
+      22 +      version: 3,                                              
+      23        onCreate: (db, _) async {
+      24          await db.execute('''
+      25            create table ${AppConstants.pendingTxTable} (
+     ...
+      40          await db.execute(
+      41            'create index pending_status_idx on ${AppConstants.pe
+          ndingTxTable}(status, created_at);',
+      42          );
+      43 +        await _createTransactionsCache(db);                    
+      44        },
+      45        onUpgrade: (db, oldVersion, newVersion) async {
+      46          if (oldVersion < 2) {
+      46 -          // Backfill: existing rows get a 1-hour window from t
+         -heir client_created_at.                                        
+      47            await db.execute(
+      48              "alter table ${AppConstants.pendingTxTable} add col
+          umn expires_at text not null default '1970-01-01T00:00:00.000Z'
+          ;",
+      49            );
+     ...
+      51              "update ${AppConstants.pendingTxTable} set expires_
+          at = datetime(client_created_at, '+1 hour');",
+      52            );
+      53          }
+      54 +        if (oldVersion < 3) {                                  
+      55 +          await _createTransactionsCache(db);                  
+      56 +        }                                                      
+      57        },
+      58      );
+      59    }
+      60  
+      61 +  Future<void> _createTransactionsCache(Database db) async {   
+      62 +    await db.execute('''                                       
+      63 +      create table ${AppConstants.transactionsCacheTable} (    
+      64 +        id text primary key,                                   
+      65 +        sender_public_key text not null,                       
+      66 +        receiver_public_key text not null,                     
+      67 +        amount real not null,                                  
+      68 +        status text not null,                                  
+      69 +        client_created_at text not null,                       
+      70 +        synced_at text                                         
+      71 +      );                                                       
+      72 +    ''');                                                      
+      73 +    await db.execute(                                          
+      74 +      'create index tx_cache_synced_idx on ${AppConstants.trans
+         +actionsCacheTable}(synced_at desc);',                          
+      75 +    );                                                         
+      76 +  }                                                            
+      77 +                                                               
+      78    Future<void> close() async {
+      79      await _db?.close();
+      80      _db = null;
+
+● Now create the TransactionModel and history feature:
+
+● Write(lib\src\features\history\data\models\transaction_model.dart)
+  ⎿  Wrote 108 lines to
+     lib\src\features\history\data\models\transaction_model.dart
+       1 import 'package:equatable/equatable.dart';
+       2 
+       3 enum TxDirection { sent, received }
+       4 
+       5 enum TxStatus { pending, confirmed, rejected }
+       6 
+       7 class TransactionModel extends Equatable {
+       8   final String id;
+       9   final String senderPublicKey;
+      10   final String receiverPublicKey;
+     … +106 lines (ctrl+o to expand)
+● Now I need to add a change notifier to PendingTxLocalService so the history
+  cubit can react to inserts/marks. Let me also create the history
+  services/repository/cubit.
+
+● Update(lib\src\features\receive\data\services\pending_tx_local_service.dart)
+  ⎿  Added 31 lines
+      1 +import 'dart:async';                                            
+      2  import 'dart:convert';
+      3  
+      4  import '../../../../core/constants/app_constants.dart';
+     ...
+       9    PendingTxLocalService([LocalDb? db]) : _db = db ?? LocalDb.in
+          stance;
+      10    final LocalDb _db;
+      11  
+      12 +  // Broadcast notifier so cubits can re-query whenever the pen
+         +ding table                                                     
+      13 +  // changes (insert from receive, status flip from sync). Enab
+         +les reactive                                                   
+      14 +  // UI without polling.                                       
+      15 +  final StreamController<void> _changes = StreamController<void
+         +>.broadcast();                                                 
+      16 +  Stream<void> get onChange => _changes.stream;                
+      17 +  void _notify() {                                             
+      18 +    if (!_changes.isClosed) _changes.add(null);                
+      19 +  }                                                            
+      20 +                                                               
+      21    Future<void> insert(SignedEnvelope envelope) async {
+      22      final db = await _db.database;
+      23      await db.insert(AppConstants.pendingTxTable, {
+     ...
+      34        'status': 'pending_sync',
+      35        'created_at': DateTime.now().toUtc().toIso8601String(),
+      36      });
+      37 +    _notify();                                                 
+      38    }
+      39  
+      40 +  /// Insert a row representing an outgoing transaction the use
+         +r just signed                                                  
+      41 +  /// while offline. Mirrors [insert] but the caller already ha
+         +s the raw                                                      
+      42 +  /// fields (the sender doesn't go through the scanner).      
+      43 +  Future<void> insertOutgoing({                                
+      44 +    required SignedEnvelope envelope,                          
+      45 +  }) async {                                                   
+      46 +    await insert(envelope);                                    
+      47 +  }                                                            
+      48 +                                                               
+      49 +  Future<List<Map<String, Object?>>> queryAllForKey(String publ
+         +icKey) async {                                                 
+      50 +    final db = await _db.database;                             
+      51 +    return db.query(                                           
+      52 +      AppConstants.pendingTxTable,                             
+      53 +      where:                                                   
+      54 +          '(sender_public_key = ? or receiver_public_key = ?) a
+         +nd status = ?',                                                
+      55 +      whereArgs: [publicKey, publicKey, 'pending_sync'],       
+      56 +      orderBy: 'created_at desc',                              
+      57 +    );                                                         
+      58 +  }                                                            
+      59 +                                                               
+      60    Future<int> pendingCount() async {
+      61      final db = await _db.database;
+      62      final rows = await db.query(
+
+● Update(lib\src\features\receive\data\services\pending_tx_local_service.dart)
+  ⎿  Added 2 lines
+       96        where: 'id = ?',
+       97        whereArgs: [id],
+       98      );
+       99 +    _notify();                                                
+      100    }
+      101  
+      102    Future<void> markRejected(String id, String reason) async {
+     ...
+      107        where: 'id = ?',
+      108        whereArgs: [id],
+      109      );
+      110 +    _notify();                                                
+      111    }
+      112  }
+
+● Now history services and repository:
+
+● Write(lib\src\features\history\data\services\history_local_service.dart)
+  ⎿  Wrote 48 lines to
+     lib\src\features\history\data\services\history_local_service.dart
+      2 import '../../../../core/services/local_db.dart';dart';
+      3 import '../../../receive/data/services/pending_tx_local_service.d
+        art';
+      4 import '../models/transaction_model.dart';
+      5 
+      6 class HistoryLocalService {
+      7   HistoryLocalService({LocalDb? db, PendingTxLocalService? pendin
+        g})
+      8       : _db = db ?? LocalDb.instance,
+      9         _pending = pending ?? PendingTxLocalService();
+     … +46 lines (ctrl+o to expand)
+
+● Update(lib\src\features\history\data\services\history_local_service.dart)
+  ⎿  Added 2 lines
+      1 +import 'package:sqflite/sqflite.dart';                          
+      2 +                                                                
+      3  import '../../../../core/constants/app_constants.dart';
+      4  import '../../../../core/services/local_db.dart';
+      5  import '../../../receive/data/services/pending_tx_local_service.
+         dart';
+
+● Write(lib\src\features\history\data\services\history_remote_service.dart)
+  ⎿  Wrote 24 lines to
+     lib\src\features\history\data\services\history_remote_service.dart
+       2 import 'package:supabase_flutter/supabase_flutter.dart';
+       3 import '../../../../core/constants/app_constants.dart';
+       4 import '../models/transaction_model.dart';
+       5 
+       6 class HistoryRemoteService {
+       7   HistoryRemoteService(this._client);
+       8   final SupabaseClient _client;
+       9 
+      10   Future<List<TransactionModel>> fetchFor(String publicKey) asyn
+         c {
+     … +15 lines (ctrl+o to expand)
+
+● Write(lib\src\features\history\data\repositories\history_repository.dart)
+  ⎿  Wrote 54 lines to
+     lib\src\features\history\data\repositories\history_repository.dart
+       2 import '../../../../core/network/result.dart';.dart';
+       3 import '../models/transaction_model.dart';
+       4 import '../services/history_local_service.dart';
+       5 import '../services/history_remote_service.dart';
+       6 
+       7 class HistorySnapshot {
+       8   final List<TransactionModel> pending;
+       9   final List<TransactionModel> completed;
+      10   const HistorySnapshot({required this.pending, required this.co
+         mpleted});
+     … +49 lines (ctrl+o to expand)
+
+● Now the HistoryCubit and state:
+
+● Write(lib\src\features\history\state\history_state.dart)
+  ⎿  Wrote 49 lines to lib\src\features\history\state\history_state.dart
+      1 import 'package:equatable/equatable.dart';
+      2 
+      3 import '../data/models/transaction_model.dart';
+      4 
+      5 sealed class HistoryState extends Equatable {
+      6   const HistoryState();
+      7   @override
+      8   List<Object?> get props => [];
+      9 }
+     … +41 lines (ctrl+o to expand)
+
+● Write(lib\src\features\history\state\history_cubit.dart)
+  ⎿  Wrote 83 lines to lib\src\features\history\state\history_cubit.dart
+       1 import 'dart:async';
+       2 
+       3 import 'package:flutter_bloc/flutter_bloc.dart';
+       4 
+       5 import '../../../core/network/result.dart';
+       6 import '../data/repositories/history_repository.dart';
+       7 import 'history_state.dart';
+       8 
+       9 class HistoryCubit extends Cubit<HistoryState> {
+      10   HistoryCubit({
+     … +81 lines (ctrl+o to expand)
+
+● Now wire send to also save to pending so sent offline transactions show up.
+  Let me read send repository:
+
+  Read 1 file (ctrl+o to expand)
+
+● Note: The sender's flow in this app produces a QR for the receiver to scan.
+  The receiver inserts into pending_transactions. Sent transactions only appear
+  in the ledger after the receiver scans + sync runs. So "sent" history
+  primarily comes from Supabase (transactions table) where sender_public_key = 
+  me. That works with my repository. The pending list shows "received offline"
+  rows (current behavior).
+
+  Let me also check the receive_state and send screens:
+
+  Read 1 file (ctrl+o to expand)
+
+● Now register HistoryCubit dependencies in DI and wire everything. The
+  HistoryCubit needs the publicKey so it can't be a singleton — I'll create it
+  in the wallet route.
+
+● Update(lib\src\core\di\injector.dart)
+  ⎿  Added 4 lines
+       5  import '../crypto/ecdsa_signer.dart';
+       6  import '../crypto/payload_codec.dart';
+       7  import '../network/error_handler.dart';
+       8 +import '../network/network_cubit.dart';                        
+       9  import '../services/connectivity_service.dart';
+      10  import '../services/secure_storage.dart';
+      11 +import '../../features/history/data/repositories/history_reposi
+         +tory.dart';                                                    
+      12 +import '../../features/history/data/services/history_local_serv
+         +ice.dart';                                                     
+      13 +import '../../features/history/data/services/history_remote_ser
+         +vice.dart';                                                    
+      14  import '../../features/receive/data/repositories/receive_reposi
+          tory.dart';
+      15  import '../../features/receive/data/services/pending_tx_local_s
+          ervice.dart';
+      16  import '../../features/receive/data/services/scanner_service.da
+          rt';
+
+● Those imports will be used once I add the registrations:
+
+● Update(lib\src\core\di\injector.dart)
+  ⎿  Added 20 lines
+      100        connectivity: getIt<ConnectivityService>(),
+      101      ),
+      102    );
+      103 +                                                              
+      104 +  // Network status (offline banner + offline-aware features) 
+      105 +  getIt.registerLazySingleton(                                
+      106 +    () => NetworkCubit(getIt<ConnectivityService>()),         
+      107 +  );                                                          
+      108 +                                                              
+      109 +  // History (sent + received transactions, local-first)      
+      110 +  getIt.registerLazySingleton(                                
+      111 +    () => HistoryRemoteService(getIt<SupabaseClient>()),      
+      112 +  );                                                          
+      113 +  getIt.registerLazySingleton(                                
+      114 +    () => HistoryLocalService(pending: getIt<PendingTxLocalSer
+          +vice>()),                                                     
+      115 +  );                                                          
+      116 +  getIt.registerLazySingleton(                                
+      117 +    () => HistoryRepository(                                  
+      118 +      local: getIt<HistoryLocalService>(),                    
+      119 +      remote: getIt<HistoryRemoteService>(),                  
+      120 +      errors: getIt<ErrorHandler>(),                          
+      121 +    ),                                                        
+      122 +  );                                                          
+      123  }
+
+● Now update app.dart to provide NetworkCubit globally + RouteObserver +
+  OfflineBanner:
+
+● Write(lib\app.dart)
+  ⎿  Added 13 lines, removed 2 lines
+       1  import 'package:flutter/material.dart';
+       2  import 'package:flutter_bloc/flutter_bloc.dart';
+       3  
+       4 +import 'src/core/components/offline_banner.dart';              
+       5  import 'src/core/di/injector.dart';
+       6 +import 'src/core/network/network_cubit.dart';                  
+       7  import 'src/core/routes/route_generator.dart';
+       8 +import 'src/core/routes/route_observer.dart';                  
+       9  import 'src/core/routes/routes.dart';
+      10  import 'src/core/theme/app_theme.dart';
+      11  import 'src/features/sync/state/sync_cubit.dart';
+     ...
+      15  
+      16    @override
+      17    Widget build(BuildContext context) {
+      15 -    return BlocProvider<SyncCubit>.value(                      
+      16 -      value: getIt<SyncCubit>(),                               
+      18 +    return MultiBlocProvider(                                  
+      19 +      providers: [                                             
+      20 +        BlocProvider<SyncCubit>.value(value: getIt<SyncCubit>()
+         +),                                                             
+      21 +        BlocProvider<NetworkCubit>.value(value: getIt<NetworkCu
+         +bit>()),                                                       
+      22 +      ],                                                       
+      23        child: MaterialApp(
+      24          title: 'Kashi',
+      25          debugShowCheckedModeBanner: false,
+      26          theme: AppTheme.light(),
+      27          initialRoute: Routes.wallet,
+      28          onGenerateRoute: RouteGenerator.generate,
+      29 +        navigatorObservers: [appRouteObserver],                
+      30 +        // Wraps every routed page so the offline banner sits b
+         +eneath the                                                     
+      31 +        // AppBar without each screen needing to opt in.       
+      32 +        builder: (context, child) =>                           
+      33 +            OfflineBanner(child: child ?? const SizedBox.shrink
+         +()),                                                           
+      34        ),
+      35      );
+      36    }
+
+● Now wire HistoryCubit into the wallet route and update the WalletScreen.
+  First, the route generator: the wallet screen needs both WalletCubit and
+  HistoryCubit (HistoryCubit needs publicKey, which becomes available after
+  WalletCubit initializes). I'll provide HistoryCubit lazily after wallet ready,
+   but cleaner to just provide HistoryCubit inside the WalletScreen body once we
+   have a WalletReady state. Let me look at the cleanest approach: nest a
+  BlocProvider inside WalletReady branch.
+
+  Now build the new history components and the updated wallet screen:
+
+● Write(lib\src\features\history\ui\components\transaction_tile.dart)
+  ⎿  Wrote 71 lines to
+     lib\src\features\history\ui\components\transaction_tile.dart
+       1 import 'package:flutter/material.dart';
+       2 
+       3 import '../../data/models/transaction_model.dart';
+       4 
+       5 class TransactionTile extends StatelessWidget {
+       6   const TransactionTile({
+       7     super.key,
+       8     required this.tx,
+       9     required this.myPublicKey,
+      10   });
+     … +63 lines (ctrl+o to expand)
+
+● Write(lib\src\features\history\ui\components\history_section.dart)
+  ⎿  Wrote 147 lines to
+     lib\src\features\history\ui\components\history_section.dart
+      1 import 'package:flutter/material.dart';
+      2 import 'package:flutter_bloc/flutter_bloc.dart';
+      3 
+      4 import '../../state/history_cubit.dart';
+      5 import '../../state/history_state.dart';
+      6 import 'transaction_tile.dart';
+      7 
+      8 class HistorySection extends StatelessWidget {
+      9   const HistorySection({super.key, required this.publicKey});
+     … +140 lines (ctrl+o to expand)
+
+● Now update the WalletScreen: remove full-screen ErrorView for offline (we
+  still keep one for true wallet init failures, but allow the user to continue
+  with stale data when offline). Wire HistoryCubit, AutoRefresh:
+
+● Write(lib\src\features\wallet\ui\wallet_screen.dart)
+  ⎿  Added 108 lines, removed 41 lines
+       3  
+       4  import '../../../core/components/error_view.dart';
+       5  import '../../../core/components/loading_view.dart';
+       6 +import '../../../core/di/injector.dart';                       
+       7 +import '../../../core/network/network_cubit.dart';             
+       8 +import '../../../core/network/network_state.dart';             
+       9 +import '../../../core/routes/route_observer.dart';             
+      10  import '../../../core/routes/routes.dart';
+      11 +import '../../history/data/repositories/history_repository.dart
+         +';                                                             
+      12 +import '../../history/state/history_cubit.dart';               
+      13 +import '../../history/ui/components/history_section.dart';     
+      14  import '../../sync/state/sync_cubit.dart';
+      15  import '../../sync/state/sync_state.dart';
+      16  import '../state/wallet_cubit.dart';
+     ...
+      24    State<WalletScreen> createState() => _WalletScreenState();
+      25  }
+      26  
+      20 -class _WalletScreenState extends State<WalletScreen> {         
+      27 +class _WalletScreenState extends State<WalletScreen>           
+      28 +    with AutoRefreshRouteAware {                               
+      29    @override
+      30    void initState() {
+      31      super.initState();
+     ...
+      33    }
+      34  
+      35    @override
+      36 +  void onResurface() {                                         
+      37 +    // User just popped back to the wallet (e.g. after Send / R
+         +eceive).                                                       
+      38 +    // Re-pull the wallet + let the nested HistoryCubit re-pull
+         + as well.                                                      
+      39 +    context.read<WalletCubit>().refresh();                     
+      40 +  }                                                            
+      41 +                                                               
+      42 +  @override                                                    
+      43    Widget build(BuildContext context) {
+      44      return Scaffold(
+      45        appBar: AppBar(
+     ...
+       69            return switch (state) {
+       70              WalletInitial() || WalletLoading() =>
+       71                const LoadingView(message: 'Preparing wallet…'),
+       72 +            // We intentionally do NOT show a full-screen offl
+          +ine error.                                                    
+       73 +            // The OfflineBanner (in app.dart) covers connecti
+          +vity loss.                                                    
+       74 +            // Real failures (e.g. crypto / storage) still ren
+          +der here.                                                     
+       75              WalletFailure(:final message) => ErrorView(
+       76                  message: message,
+       77                  onRetry: () => context.read<WalletCubit>().ini
+           tialize(),
+       78                ),
+       61 -            WalletReady(:final wallet, :final pendingOut) => R
+          -efreshIndicator(                                              
+       62 -                onRefresh: () => context.read<WalletCubit>().r
+          -efresh(),                                                     
+       63 -                child: ListView(                              
+       64 -                  padding: const EdgeInsets.all(16),          
+       65 -                  children: [                                 
+       66 -                    BalanceCard(                              
+       67 -                      balance: wallet.balance,                
+       68 -                      pendingOut: pendingOut,                 
+       69 -                      publicKey: wallet.publicKey,            
+       70 -                    ),                                        
+       71 -                    const SizedBox(height: 24),               
+       72 -                    FilledButton.icon(                        
+       73 -                      onPressed: () => Navigator.pushNamed(   
+       74 -                        context,                              
+       75 -                        Routes.send,                          
+       76 -                        arguments: wallet.publicKey,          
+       77 -                      ),                                      
+       78 -                      icon: const Icon(Icons.qr_code),        
+       79 -                      label: const Text('Send'),              
+       80 -                    ),                                        
+       81 -                    const SizedBox(height: 12),               
+       82 -                    FilledButton.icon(                        
+       83 -                      onPressed: () => Navigator.pushNamed(   
+       84 -                        context,                              
+       85 -                        Routes.receive,                       
+       86 -                        arguments: wallet.publicKey,          
+       87 -                      ),                                      
+       88 -                      icon: const Icon(Icons.qr_code_scanner),
+       89 -                      label: const Text('Receive'),           
+       90 -                    ),                                        
+       91 -                    const SizedBox(height: 24),               
+       92 -                    BlocBuilder<SyncCubit, SyncState>(        
+       93 -                      builder: (context, state) => switch (sta
+          -te) {                                                         
+       94 -                        SyncIdle(:final synced, :final failed)
+          - when synced + failed > 0 =>                                  
+       95 -                          Text('Last sync: $synced ok, $failed
+          - failed'),                                                    
+       96 -                        SyncRunning() => const Text('Syncing…'
+          -),                                                            
+       97 -                        _ => const SizedBox.shrink(),         
+       98 -                      },                                      
+       99 -                    ),                                        
+      100 -                  ],                                          
+       79 +            WalletReady(:final wallet, :final pendingOut) =>  
+       80 +              BlocProvider<HistoryCubit>(                     
+       81 +                create: (_) => HistoryCubit(                  
+       82 +                  repository: getIt<HistoryRepository>(),     
+       83 +                  publicKey: wallet.publicKey,                
+       84 +                )..load(),                                    
+       85 +                child: _WalletReadyView(                      
+       86 +                  publicKey: wallet.publicKey,                
+       87 +                  balance: wallet.balance,                    
+       88 +                  pendingOut: pendingOut,                     
+       89                  ),
+       90                ),
+       91            };
+     ...
+       94      );
+       95    }
+       96  }
+       97 +                                                              
+       98 +class _WalletReadyView extends StatelessWidget {              
+       99 +  const _WalletReadyView({                                    
+      100 +    required this.publicKey,                                  
+      101 +    required this.balance,                                    
+      102 +    required this.pendingOut,                                 
+      103 +  });                                                         
+      104 +                                                              
+      105 +  final String publicKey;                                     
+      106 +  final double balance;                                       
+      107 +  final double pendingOut;                                    
+      108 +                                                              
+      109 +  @override                                                   
+      110 +  Widget build(BuildContext context) {                        
+      111 +    return RefreshIndicator(                                  
+      112 +      onRefresh: () async {                                   
+      113 +        await context.read<WalletCubit>().refresh();          
+      114 +        await context.read<HistoryCubit>().refresh();         
+      115 +      },                                                      
+      116 +      child: BlocListener<NetworkCubit, NetworkState>(        
+      117 +        listenWhen: (a, b) => a is! NetworkOnline && b is Netw
+          +orkOnline,                                                    
+      118 +        listener: (context, _) {                              
+      119 +          // When connectivity returns, opportunistically re-p
+          +ull remote                                                    
+      120 +          // history. Sync runs independently via SyncCubit's 
+          +listener.                                                     
+      121 +          context.read<HistoryCubit>().refresh();             
+      122 +        },                                                    
+      123 +        child: ListView(                                      
+      124 +          padding: const EdgeInsets.all(16),                  
+      125 +          children: [                                         
+      126 +            BalanceCard(                                      
+      127 +              balance: balance,                               
+      128 +              pendingOut: pendingOut,                         
+      129 +              publicKey: publicKey,                           
+      130 +            ),                                                
+      131 +            const SizedBox(height: 24),                       
+      132 +            Row(                                              
+      133 +              children: [                                     
+      134 +                Expanded(                                     
+      135 +                  child: FilledButton.icon(                   
+      136 +                    onPressed: () => Navigator.pushNamed(     
+      137 +                      context,                                
+      138 +                      Routes.send,                            
+      139 +                      arguments: publicKey,                   
+      140 +                    ),                                        
+      141 +                    icon: const Icon(Icons.qr_code),          
+      142 +                    label: const Text('Send'),                
+      143 +                  ),                                          
+      144 +                ),                                            
+      145 +                const SizedBox(width: 12),                    
+      146 +                Expanded(                                     
+      147 +                  child: FilledButton.icon(                   
+      148 +                    onPressed: () => Navigator.pushNamed(     
+      149 +                      context,                                
+      150 +                      Routes.receive,                         
+      151 +                      arguments: publicKey,                   
+      152 +                    ),                                        
+      153 +                    icon: const Icon(Icons.qr_code_scanner),  
+      154 +                    label: const Text('Receive'),             
+      155 +                  ),                                          
+      156 +                ),                                            
+      157 +              ],                                              
+      158 +            ),                                                
+      159 +            const SizedBox(height: 16),                       
+      160 +            BlocBuilder<SyncCubit, SyncState>(                
+      161 +              builder: (context, state) => switch (state) {   
+      162 +                SyncIdle(:final synced, :final failed) when sy
+          +nced + failed > 0 =>                                          
+      163 +                  Text('Last sync: $synced ok, $failed failed'
+          +),                                                            
+      164 +                SyncRunning() => const Text('Syncing…'),      
+      165 +                _ => const SizedBox.shrink(),                 
+      166 +              },                                              
+      167 +            ),                                                
+      168 +            const SizedBox(height: 8),                        
+      169 +            HistorySection(publicKey: publicKey),             
+      170 +          ],                                                  
+      171 +        ),                                                    
+      172 +      ),                                                      
+      173 +    );                                                        
+      174 +  }                                                           
+      175 +}                                                               ⎿  You've hit your limit · resets 5am (Asia/Hebron)
+     /upgrade to increase your usage limit.
+
+❯ /rate-limit-options                                                           
+  ⎿  Login interrupted

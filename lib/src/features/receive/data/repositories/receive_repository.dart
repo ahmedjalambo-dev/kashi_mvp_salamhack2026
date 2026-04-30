@@ -16,11 +16,11 @@ class ReceiveRepository {
     required EcdsaSigner signer,
     required PayloadCodec codec,
     required ErrorHandler errors,
-  })  : _scanner = scanner,
-        _pending = pendingTx,
-        _signer = signer,
-        _codec = codec,
-        _errors = errors;
+  }) : _scanner = scanner,
+       _pending = pendingTx,
+       _signer = signer,
+       _codec = codec,
+       _errors = errors;
 
   final ScannerService _scanner;
   final PendingTxLocalService _pending;
@@ -52,7 +52,10 @@ class ReceiveRepository {
       }
       if (p.receiverPublicKey != myPublicKey) {
         return const Failure(
-          ErrorModel(message: 'QR is for a different wallet', code: 'WRONG_RECEIVER'),
+          ErrorModel(
+            message: 'QR is for a different wallet',
+            code: 'WRONG_RECEIVER',
+          ),
         );
       }
       if (p.amount <= 0) {
@@ -64,9 +67,14 @@ class ReceiveRepository {
       final now = DateTime.now().toUtc();
 
       // Reject if the sender's clock is more than 5 min ahead of ours.
-      if (p.clientCreatedAt.isAfter(now.add(const Duration(minutes: _maxFutureMinutes)))) {
+      if (p.clientCreatedAt.isAfter(
+        now.add(const Duration(minutes: _maxFutureMinutes)),
+      )) {
         return const Failure(
-          ErrorModel(message: 'QR timestamp is too far in the future', code: 'CLOCK_SKEW'),
+          ErrorModel(
+            message: 'QR timestamp is too far in the future',
+            code: 'CLOCK_SKEW',
+          ),
         );
       }
 
@@ -102,4 +110,3 @@ class ReceiveRepository {
     }
   }
 }
-

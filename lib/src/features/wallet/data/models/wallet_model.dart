@@ -12,10 +12,10 @@ class WalletModel extends Equatable {
   });
 
   factory WalletModel.fromJson(Map<String, dynamic> json) => WalletModel(
-        id: json['id'] as String,
-        publicKey: json['public_key'] as String,
-        balance: (json['balance'] as num).toDouble(),
-      );
+    id: json['id'] as String,
+    publicKey: json['public_key'] as String,
+    balance: (json['balance'] as num).toDouble(),
+  );
 
   @override
   List<Object?> get props => [id, publicKey, balance];

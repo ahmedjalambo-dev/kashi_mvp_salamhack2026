@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import '../../../../core/constants/app_constants.dart';
@@ -7,6 +8,15 @@ import '../../../send/data/models/payment_payload.dart';
 class PendingTxLocalService {
   PendingTxLocalService([LocalDb? db]) : _db = db ?? LocalDb.instance;
   final LocalDb _db;
+
+  // Broadcast notifier so cubits can re-query whenever the pending table
+  // changes (insert from receive, status flip from sync). Enables reactive
+  // UI without polling.
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+  Stream<void> get onChange => _changes.stream;
+  void _notify() {
+    if (!_changes.isClosed) _changes.add(null);
+  }
 
   Future<void> insert(SignedEnvelope envelope) async {
     final db = await _db.database;
@@ -18,12 +28,32 @@ class PendingTxLocalService {
       'nonce': envelope.payload.nonce,
       'signature': envelope.signature,
       'signed_payload': jsonEncode(envelope.payload.toJson()),
-      'client_created_at':
-          envelope.payload.clientCreatedAt.toUtc().toIso8601String(),
+      'client_created_at': envelope.payload.clientCreatedAt
+          .toUtc()
+          .toIso8601String(),
       'expires_at': envelope.payload.expiresAt.toUtc().toIso8601String(),
       'status': 'pending_sync',
       'created_at': DateTime.now().toUtc().toIso8601String(),
     });
+    _notify();
+  }
+
+  /// Insert a row representing an outgoing transaction the user just signed
+  /// while offline. Mirrors [insert] but the caller already has the raw
+  /// fields (the sender doesn't go through the scanner).
+  Future<void> insertOutgoing({required SignedEnvelope envelope}) async {
+    await insert(envelope);
+  }
+
+  Future<List<Map<String, Object?>>> queryAllForKey(String publicKey) async {
+    final db = await _db.database;
+    return db.query(
+      AppConstants.pendingTxTable,
+      where:
+          '(sender_public_key = ? or receiver_public_key = ?) and status = ?',
+      whereArgs: [publicKey, publicKey, 'pending_sync'],
+      orderBy: 'created_at desc',
+    );
   }
 
   Future<int> pendingCount() async {
@@ -44,7 +74,10 @@ class PendingTxLocalService {
       where: "sender_public_key = ? and status = 'pending_sync'",
       whereArgs: [senderPublicKey],
     );
-    return rows.fold<double>(0.0, (sum, r) => sum + (r['amount'] as num).toDouble());
+    return rows.fold<double>(
+      0.0,
+      (sum, r) => sum + (r['amount'] as num).toDouble(),
+    );
   }
 
   Future<List<Map<String, Object?>>> queryPending() async {
@@ -65,6 +98,7 @@ class PendingTxLocalService {
       where: 'id = ?',
       whereArgs: [id],
     );
+    _notify();
   }
 
   Future<void> markRejected(String id, String reason) async {
@@ -75,5 +109,6 @@ class PendingTxLocalService {
       where: 'id = ?',
       whereArgs: [id],
     );
+    _notify();
   }
 }

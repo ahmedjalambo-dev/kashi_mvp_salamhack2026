@@ -26,7 +26,9 @@ void main() {
     pair = signer.generateKeyPair();
     paymentSigner = PaymentSigner(signer: signer, codec: const PayloadCodec());
     storage = _MockSecureStorage();
-    when(() => storage.read(any())).thenAnswer((_) async => pair.privateKeyBase64);
+    when(
+      () => storage.read(any()),
+    ).thenAnswer((_) async => pair.privateKeyBase64);
     repo = SendRepository(
       paymentSigner: paymentSigner,
       secureStorage: storage,
@@ -44,7 +46,8 @@ void main() {
     expect(result, isA<Success<String>>());
     final qr = (result as Success<String>).data;
     final envelope = SignedEnvelope.fromJson(
-      (jsonDecode(utf8.decode(base64Decode(qr))) as Map).cast<String, dynamic>(),
+      (jsonDecode(utf8.decode(base64Decode(qr))) as Map)
+          .cast<String, dynamic>(),
     );
     expect(envelope.payload.amount, 12.5);
     expect(paymentSigner.verify(envelope.payload, envelope.signature), isTrue);

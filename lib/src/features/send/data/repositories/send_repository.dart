@@ -18,11 +18,11 @@ class SendRepository {
     required Uuid uuid,
     required ErrorHandler errors,
     Random? random,
-  })  : _paymentSigner = paymentSigner,
-        _storage = secureStorage,
-        _uuid = uuid,
-        _errors = errors,
-        _random = random ?? Random.secure();
+  }) : _paymentSigner = paymentSigner,
+       _storage = secureStorage,
+       _uuid = uuid,
+       _errors = errors,
+       _random = random ?? Random.secure();
 
   final PaymentSigner _paymentSigner;
   final SecureStorage _storage;

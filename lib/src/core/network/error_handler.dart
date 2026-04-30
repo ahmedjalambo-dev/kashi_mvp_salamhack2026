@@ -15,10 +15,16 @@ class ErrorHandler {
       return ErrorModel(message: error.message, code: error.statusCode);
     }
     if (error is SocketException) {
-      return const ErrorModel(message: 'No internet connection', code: 'OFFLINE');
+      return const ErrorModel(
+        message: 'No internet connection',
+        code: 'OFFLINE',
+      );
     }
     if (error is FormatException) {
-      return ErrorModel(message: 'Invalid data format: ${error.message}', code: 'FORMAT');
+      return ErrorModel(
+        message: 'Invalid data format: ${error.message}',
+        code: 'FORMAT',
+      );
     }
     return ErrorModel(message: error.toString(), code: 'UNKNOWN');
   }

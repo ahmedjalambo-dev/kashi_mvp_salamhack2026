@@ -8,8 +8,8 @@ class ReceiveCubit extends Cubit<ReceiveState> {
   ReceiveCubit({
     required ReceiveRepository repository,
     required this.myPublicKey,
-  })  : _repository = repository,
-        super(const ReceiveScanning());
+  }) : _repository = repository,
+       super(const ReceiveScanning());
 
   final ReceiveRepository _repository;
   final String myPublicKey;

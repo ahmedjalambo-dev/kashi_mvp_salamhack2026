@@ -19,7 +19,7 @@ class LocalDb {
     final path = p.join(dir.path, AppConstants.sqliteDbName);
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, _) async {
         await db.execute('''
           create table ${AppConstants.pendingTxTable} (
@@ -40,10 +40,10 @@ class LocalDb {
         await db.execute(
           'create index pending_status_idx on ${AppConstants.pendingTxTable}(status, created_at);',
         );
+        await _createTransactionsCache(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          // Backfill: existing rows get a 1-hour window from their client_created_at.
           await db.execute(
             "alter table ${AppConstants.pendingTxTable} add column expires_at text not null default '1970-01-01T00:00:00.000Z';",
           );
@@ -51,7 +51,27 @@ class LocalDb {
             "update ${AppConstants.pendingTxTable} set expires_at = datetime(client_created_at, '+1 hour');",
           );
         }
+        if (oldVersion < 3) {
+          await _createTransactionsCache(db);
+        }
       },
+    );
+  }
+
+  Future<void> _createTransactionsCache(Database db) async {
+    await db.execute('''
+      create table ${AppConstants.transactionsCacheTable} (
+        id text primary key,
+        sender_public_key text not null,
+        receiver_public_key text not null,
+        amount real not null,
+        status text not null,
+        client_created_at text not null,
+        synced_at text
+      );
+    ''');
+    await db.execute(
+      'create index tx_cache_synced_idx on ${AppConstants.transactionsCacheTable}(synced_at desc);',
     );
   }
 

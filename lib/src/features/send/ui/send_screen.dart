@@ -20,23 +20,23 @@ class SendScreen extends StatelessWidget {
           return switch (state) {
             SendLoading() => const LoadingView(message: 'Signing payment…'),
             SendReady(:final qrData, :final amount) => Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: SingleChildScrollView(
-                          child: QrDisplay(data: qrData, amount: amount),
-                        ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: QrDisplay(data: qrData, amount: amount),
                       ),
                     ),
-                    FilledButton(
-                      onPressed: cubit.reset,
-                      child: const Text('New payment'),
-                    ),
-                  ],
-                ),
+                  ),
+                  FilledButton(
+                    onPressed: cubit.reset,
+                    child: const Text('New payment'),
+                  ),
+                ],
               ),
+            ),
             _ => _SendForm(error: state is SendFailure ? state.message : null),
           };
         },

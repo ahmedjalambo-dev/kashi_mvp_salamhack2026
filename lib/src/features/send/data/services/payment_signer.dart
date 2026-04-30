@@ -4,8 +4,8 @@ import '../models/payment_payload.dart';
 
 class PaymentSigner {
   PaymentSigner({required EcdsaSigner signer, required PayloadCodec codec})
-      : _signer = signer,
-        _codec = codec;
+    : _signer = signer,
+      _codec = codec;
 
   final EcdsaSigner _signer;
   final PayloadCodec _codec;
