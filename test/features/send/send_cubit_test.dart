@@ -1,10 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/network/error_model.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/network/result.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/send/data/repositories/send_repository.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/send/state/send_cubit.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/send/state/send_state.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/error_model.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/result.dart';
+import 'package:kashi_mvp_salamhack2026/features/send/data/repositories/send_repository.dart';
+import 'package:kashi_mvp_salamhack2026/features/send/state/send_cubit.dart';
+import 'package:kashi_mvp_salamhack2026/features/send/state/send_state.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockSendRepository extends Mock implements SendRepository {}

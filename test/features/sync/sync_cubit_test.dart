@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/network/error_model.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/network/result.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/services/connectivity_service.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/data/repositories/sync_repository.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_cubit.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_state.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/repositories/wallet_repository.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/error_model.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/result.dart';
+import 'package:kashi_mvp_salamhack2026/core/services/connectivity_service.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/data/repositories/sync_repository.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_cubit.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_state.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/repositories/wallet_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockSyncRepository extends Mock implements SyncRepository {}

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'src/core/components/offline_banner.dart';
-import 'src/core/di/injector.dart';
-import 'src/core/network/network_cubit.dart';
-import 'src/core/routes/route_generator.dart';
-import 'src/core/routes/route_observer.dart';
-import 'src/core/routes/routes.dart';
-import 'src/core/theme/app_theme.dart';
-import 'src/features/sync/state/sync_cubit.dart';
+import 'core/components/offline_banner.dart';
+import 'core/di/injector.dart';
+import 'core/network/network_cubit.dart';
+import 'core/routes/route_generator.dart';
+import 'core/routes/route_observer.dart';
+import 'core/routes/routes.dart';
+import 'core/theme/app_theme.dart';
+import 'features/sync/state/sync_cubit.dart';
 
 class KashiApp extends StatelessWidget {
   const KashiApp({super.key});

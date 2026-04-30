@@ -1,16 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/network/error_handler.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/network/result.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/history/data/models/transaction_model.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/history/data/services/history_remote_service.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/data/repositories/sync_repository.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/data/services/sync_local_service.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/data/services/sync_remote_service.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/models/wallet_model.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/services/wallet_local_service.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/services/wallet_remote_service.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/error_handler.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/result.dart';
+import 'package:kashi_mvp_salamhack2026/features/history/data/models/transaction_model.dart';
+import 'package:kashi_mvp_salamhack2026/features/history/data/services/history_remote_service.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/data/repositories/sync_repository.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/data/services/sync_local_service.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/data/services/sync_remote_service.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/models/wallet_model.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/services/wallet_local_service.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/services/wallet_remote_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockSyncRemoteService extends Mock implements SyncRemoteService {}

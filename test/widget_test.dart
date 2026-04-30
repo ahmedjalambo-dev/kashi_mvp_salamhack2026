@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/crypto/ecdsa_signer.dart';
-import 'package:kashi_mvp_salamhack2026/src/core/crypto/payload_codec.dart';
+import 'package:kashi_mvp_salamhack2026/core/crypto/ecdsa_signer.dart';
+import 'package:kashi_mvp_salamhack2026/core/crypto/payload_codec.dart';
 
 void main() {
   test('canonical encoding sorts keys deterministically', () {

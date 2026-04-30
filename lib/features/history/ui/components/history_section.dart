@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_cubit.dart';
-import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_state.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_cubit.dart';
+import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_state.dart';
 
 import '../../state/history_cubit.dart';
 import '../../state/history_state.dart';
