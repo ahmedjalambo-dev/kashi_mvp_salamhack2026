@@ -52,9 +52,6 @@ class _SendForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<SendCubit>();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -62,78 +59,18 @@ class _SendForm extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Amount Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-                boxShadow: isDark
-                    ? null
-                    : [
-                        const BoxShadow(
-                          color: Color(0x0F1A1A1A),
-                          offset: Offset(0, 4),
-                          blurRadius: 12,
-                        ),
-                      ],
+            TextFormField(
+              controller: cubit.recipientController,
+              decoration: const InputDecoration(
+                labelText: 'Recipient public key',
+                border: OutlineInputBorder(),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'AMOUNT',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  AmountInput(controller: cubit.amountController),
-                ],
-              ),
+              maxLines: 3,
+              validator: (value) =>
+                  (value == null || value.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 16),
-
-            // Recipient Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'RECIPIENT PUBLIC KEY',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: cubit.recipientController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter public key...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
-                    maxLines: 3,
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Required'
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-
+            AmountInput(controller: cubit.amountController),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: cubit.createPayment,
@@ -142,30 +79,7 @@ class _SendForm extends StatelessWidget {
             ),
             if (error != null) ...[
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        error!,
-                        style: TextStyle(
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              Text(error!, style: const TextStyle(color: Colors.redAccent)),
             ],
           ],
         ),

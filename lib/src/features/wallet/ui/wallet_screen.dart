@@ -15,8 +15,7 @@ import '../../sync/state/sync_cubit.dart';
 import '../../sync/state/sync_state.dart';
 import '../state/wallet_cubit.dart';
 import '../state/wallet_state.dart';
-import '../../../core/components/action_tile.dart';
-import '../../../core/components/balance_card.dart';
+import 'components/balance_card.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -131,26 +130,26 @@ class _WalletReadyView extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: ActionTile(
-                    icon: Icons.arrow_downward_rounded,
-                    label: 'Receive',
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      Routes.receive,
-                      arguments: publicKey,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ActionTile(
-                    icon: Icons.arrow_upward_rounded,
-                    label: 'Send',
-                    onTap: () => Navigator.pushNamed(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.pushNamed(
                       context,
                       Routes.send,
                       arguments: publicKey,
                     ),
+                    icon: const Icon(Icons.qr_code),
+                    label: const Text('Send'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      Routes.receive,
+                      arguments: publicKey,
+                    ),
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Receive'),
                   ),
                 ),
               ],
