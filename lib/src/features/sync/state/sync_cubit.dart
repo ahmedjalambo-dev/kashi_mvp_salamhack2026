@@ -16,6 +16,7 @@ class SyncCubit extends Cubit<SyncState> {
   }) : _repository = repository,
        _connectivity = connectivity,
        super(const SyncIdle()) {
+    _resetStaleDuplicateRejections();
     _sub = _connectivity.onStatusChange.listen((online) {
       if (online) runOnce();
     });
@@ -31,21 +32,34 @@ class SyncCubit extends Cubit<SyncState> {
     if (_running) return;
     _retryTimer?.cancel();
     _running = true;
-    emit(const SyncRunning());
-    final result = await _repository.drainPending();
-    switch (result) {
-      case Success(:final data):
-        emit(SyncIdle(synced: data.synced, failed: data.failed));
-      case Failure(:final error):
-        emit(SyncFailure(error.message));
+    if (!isClosed) emit(const SyncRunning());
+    try {
+      final result = await _repository.drainPending();
+      if (isClosed) return;
+      switch (result) {
+        case Success(:final data):
+          emit(SyncIdle(synced: data.synced, failed: data.failed));
+        case Failure(:final error):
+          emit(SyncFailure(error.message));
+      }
+    } finally {
+      _running = false;
     }
-    _running = false;
 
+    if (isClosed) return;
     // If rows still pending (retryable errors or socket abort), schedule a
     // retry so we don't wait for the next connectivity edge.
     final remaining = await _repository.pendingCount();
-    if (remaining > 0) {
+    if (remaining > 0 && !isClosed) {
       _retryTimer = Timer(_retryDelay, runOnce);
+    }
+  }
+
+  Future<void> _resetStaleDuplicateRejections() async {
+    try {
+      await _repository.requeueDuplicateRejections();
+    } catch (_) {
+      // Startup cleanup — silently ignore if DB isn't ready yet.
     }
   }
 

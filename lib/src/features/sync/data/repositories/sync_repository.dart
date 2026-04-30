@@ -48,10 +48,11 @@ class SyncRepository {
             clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
             expiresAt: DateTime.parse(row['expires_at'] as String),
           );
-          // A 'duplicate' status means the server already processed this TX
-          // (idempotent re-delivery). Count it as synced.
+          // A 'duplicate'/'exists'/'already_synced' status means the server
+          // already processed this TX (idempotent re-delivery). Count as synced.
           final status = response['status'] as String? ?? 'ok';
-          if (status == 'ok' || status == 'duplicate') {
+          const okStatuses = {'ok', 'duplicate', 'exists', 'already_synced'};
+          if (okStatuses.contains(status)) {
             await _local.markSynced(id);
             synced++;
           } else {
@@ -62,13 +63,30 @@ class SyncRepository {
           // The receiver already pushed this UUID — server settled it. Mark
           // synced locally so the row leaves the pending queue and the synced
           // counter increments (not failed).
-          if (e.code == '23505') {
+          if (_isDuplicate(e)) {
             await _local.markSynced(id);
             synced++;
             continue;
           }
           // Transient: sender chain hasn't synced yet — leave pending to retry.
           if (_isInsufficientFunds(e)) continue;
+          // The RPC requires the caller to own the receiver wallet, so the
+          // sender's outgoing row always hits 42501. Check if the receiver has
+          // already settled this tx server-side; if yes, mark synced so the
+          // row leaves the pending queue without incrementing failed.
+          if (_isCallerNotReceiver(e)) {
+            try {
+              if (await _remote.transactionExists(id)) {
+                await _local.markSynced(id);
+                synced++;
+              }
+              // else: receiver hasn't synced yet — leave row pending_sync for
+              // the next connectivity edge or retry timer.
+            } on SocketException {
+              return Success(SyncOutcome(synced, failed));
+            }
+            continue;
+          }
           // Permanent rejection (bad signature, other constraint, etc.)
           await _local.markRejected(id, e.message);
           failed++;
@@ -85,7 +103,29 @@ class SyncRepository {
 
   Future<int> pendingCount() => _local.pendingCount();
 
+  Future<void> requeueDuplicateRejections() =>
+      _local.requeueDuplicateRejections();
+
+  // Recognises every plausible duplicate signal a Supabase RPC can produce:
+  // SQLSTATE 23505, PostgREST HTTP 409, or a P0001 RAISE EXCEPTION whose
+  // message contains the duplicate text.
+  bool _isDuplicate(PostgrestException e) {
+    if (e.code == '23505') return true;
+    if (e.code == '409') return true;
+    final msg = e.message.toLowerCase();
+    return msg.contains('duplicate key') ||
+        msg.contains('unique constraint') ||
+        msg.contains('already exists');
+  }
+
   // P0001 is a Postgres RAISE EXCEPTION; the message is set by the RPC.
   bool _isInsufficientFunds(PostgrestException e) =>
       e.code == 'P0001' && e.message.contains('INSUFFICIENT_FUNDS');
+
+  // The RPC rejects when the caller doesn't own the receiver wallet (42501).
+  // This is the expected path for sender-originated rows — the RPC is designed
+  // for receivers only.
+  bool _isCallerNotReceiver(PostgrestException e) =>
+      e.code == '42501' ||
+      e.message.toLowerCase().contains('caller is not receiver');
 }

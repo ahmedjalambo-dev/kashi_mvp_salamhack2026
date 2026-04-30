@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kashi_mvp_salamhack2026/src/core/network/error_handler.dart';
 import 'package:kashi_mvp_salamhack2026/src/core/network/result.dart';
@@ -43,6 +45,7 @@ void main() {
     when(() => local.markSynced(any())).thenAnswer((_) async {});
     when(() => local.markRejected(any(), any())).thenAnswer((_) async {});
     when(() => local.pendingCount()).thenAnswer((_) async => 0);
+    when(() => remote.transactionExists(any())).thenAnswer((_) async => false);
   });
 
   test('23505 unique-violation is treated as successful sync', () async {
@@ -151,5 +154,226 @@ void main() {
     expect(outcome.synced, 1);
     expect(outcome.failed, 0);
     verify(() => local.markSynced('tx-uuid-1')).called(1);
+  });
+
+  // _isDuplicate broadened matcher tests
+
+  test('P0001 with "duplicate key" message is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenThrow(
+      PostgrestException(
+        code: 'P0001',
+        message: 'duplicate key value violates unique constraint',
+      ),
+    );
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('HTTP 409 PostgrestException is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenThrow(
+      PostgrestException(code: '409', message: 'conflict'),
+    );
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('RPC status "exists" is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenAnswer((_) async => {'status': 'exists'});
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  test('RPC status "already_synced" is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenAnswer((_) async => {'status': 'already_synced'});
+
+    final result = await repo.drainPending();
+
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markSynced('tx-uuid-1')).called(1);
+    verifyNever(() => local.markRejected(any(), any()));
+  });
+
+  // _isCallerNotReceiver (42501) tests — sender's outgoing row
+
+  test(
+    '42501 + tx exists server-side → treated as synced (receiver already settled)',
+    () async {
+      when(
+        () => remote.push(
+          id: any(named: 'id'),
+          senderPublicKey: any(named: 'senderPublicKey'),
+          receiverPublicKey: any(named: 'receiverPublicKey'),
+          amount: any(named: 'amount'),
+          nonce: any(named: 'nonce'),
+          signature: any(named: 'signature'),
+          signedPayload: any(named: 'signedPayload'),
+          clientCreatedAt: any(named: 'clientCreatedAt'),
+          expiresAt: any(named: 'expiresAt'),
+        ),
+      ).thenThrow(
+        PostgrestException(
+          code: '42501',
+          message: 'caller is not receiver wallet owner',
+        ),
+      );
+      when(() => remote.transactionExists(any())).thenAnswer((_) async => true);
+
+      final result = await repo.drainPending();
+
+      expect(result, isA<Success<SyncOutcome>>());
+      final outcome = (result as Success<SyncOutcome>).data;
+      expect(outcome.synced, 1);
+      expect(outcome.failed, 0);
+      verify(() => local.markSynced('tx-uuid-1')).called(1);
+      verifyNever(() => local.markRejected(any(), any()));
+    },
+  );
+
+  test(
+    '42501 + tx does NOT exist server-side → row stays pending (receiver not yet synced)',
+    () async {
+      when(
+        () => remote.push(
+          id: any(named: 'id'),
+          senderPublicKey: any(named: 'senderPublicKey'),
+          receiverPublicKey: any(named: 'receiverPublicKey'),
+          amount: any(named: 'amount'),
+          nonce: any(named: 'nonce'),
+          signature: any(named: 'signature'),
+          signedPayload: any(named: 'signedPayload'),
+          clientCreatedAt: any(named: 'clientCreatedAt'),
+          expiresAt: any(named: 'expiresAt'),
+        ),
+      ).thenThrow(
+        PostgrestException(
+          code: '42501',
+          message: 'caller is not receiver wallet owner',
+        ),
+      );
+      when(
+        () => remote.transactionExists(any()),
+      ).thenAnswer((_) async => false);
+
+      final result = await repo.drainPending();
+
+      expect(result, isA<Success<SyncOutcome>>());
+      final outcome = (result as Success<SyncOutcome>).data;
+      expect(outcome.synced, 0);
+      expect(outcome.failed, 0);
+      verifyNever(() => local.markSynced(any()));
+      verifyNever(() => local.markRejected(any(), any()));
+    },
+  );
+
+  test(
+    '42501 + transactionExists throws SocketException → drain stops, returns current counts',
+    () async {
+      when(
+        () => remote.push(
+          id: any(named: 'id'),
+          senderPublicKey: any(named: 'senderPublicKey'),
+          receiverPublicKey: any(named: 'receiverPublicKey'),
+          amount: any(named: 'amount'),
+          nonce: any(named: 'nonce'),
+          signature: any(named: 'signature'),
+          signedPayload: any(named: 'signedPayload'),
+          clientCreatedAt: any(named: 'clientCreatedAt'),
+          expiresAt: any(named: 'expiresAt'),
+        ),
+      ).thenThrow(
+        PostgrestException(
+          code: '42501',
+          message: 'caller is not receiver wallet owner',
+        ),
+      );
+      when(
+        () => remote.transactionExists(any()),
+      ).thenThrow(const SocketException('connection reset'));
+
+      final result = await repo.drainPending();
+
+      expect(result, isA<Success<SyncOutcome>>());
+      final outcome = (result as Success<SyncOutcome>).data;
+      expect(outcome.synced, 0);
+      expect(outcome.failed, 0);
+      verifyNever(() => local.markSynced(any()));
+      verifyNever(() => local.markRejected(any(), any()));
+    },
+  );
+
+  test('requeueDuplicateRejections delegates to local service', () async {
+    when(() => local.requeueDuplicateRejections()).thenAnswer((_) async {});
+
+    await repo.requeueDuplicateRejections();
+
+    verify(() => local.requeueDuplicateRejections()).called(1);
   });
 }
