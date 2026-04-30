@@ -107,8 +107,10 @@ Future<bool> _confirmCancel(BuildContext context) async {
     builder: (ctx) => AlertDialog(
       title: const Text('Cancel transfer?'),
       content: const Text(
-        'The receiver will no longer be able to scan this QR code. '
-        'Your funds will be returned to your available balance.',
+        'Warning: If the receiver has already scanned this QR code, '
+        'the transfer will still be processed when they connect to '
+        'the internet, and your balance will be adjusted accordingly. '
+        'Do you still want to cancel?',
       ),
       actions: [
         TextButton(

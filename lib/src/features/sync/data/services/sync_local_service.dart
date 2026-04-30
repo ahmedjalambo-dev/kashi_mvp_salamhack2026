@@ -12,4 +12,10 @@ class SyncLocalService {
   Future<int> pendingCount() => _pending.pendingCount();
   Future<void> requeueDuplicateRejections() =>
       _pending.requeueDuplicateRejections();
+
+  Future<List<Map<String, Object?>>> queryByStatus(String status) =>
+      _pending.queryByStatus(status);
+
+  Future<void> markSyncedFromVoided(String id) =>
+      _pending.markSyncedFromVoided(id);
 }

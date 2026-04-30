@@ -9,9 +9,10 @@ sealed class SyncState extends Equatable {
 class SyncIdle extends SyncState {
   final int synced;
   final int failed;
-  const SyncIdle({this.synced = 0, this.failed = 0});
+  final int reconciled;
+  const SyncIdle({this.synced = 0, this.failed = 0, this.reconciled = 0});
   @override
-  List<Object?> get props => [synced, failed];
+  List<Object?> get props => [synced, failed, reconciled];
 }
 
 class SyncRunning extends SyncState {

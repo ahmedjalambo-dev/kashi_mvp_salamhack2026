@@ -95,12 +95,16 @@ void configureDependencies() {
       remote: getIt<SyncRemoteService>(),
       local: getIt<SyncLocalService>(),
       errors: getIt<ErrorHandler>(),
+      remoteHistory: getIt<HistoryRemoteService>(),
+      walletRemote: getIt<WalletRemoteService>(),
+      walletLocal: getIt<WalletLocalService>(),
     ),
   );
   getIt.registerLazySingleton(
     () => SyncCubit(
       repository: getIt<SyncRepository>(),
       connectivity: getIt<ConnectivityService>(),
+      walletRepository: getIt<WalletRepository>(),
     ),
   );
 

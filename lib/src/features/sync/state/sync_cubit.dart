@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
 import '../../../core/services/connectivity_service.dart';
+import '../../wallet/data/repositories/wallet_repository.dart';
 import '../data/repositories/sync_repository.dart';
 import 'sync_state.dart';
 
@@ -13,8 +14,10 @@ class SyncCubit extends Cubit<SyncState> {
   SyncCubit({
     required SyncRepository repository,
     required ConnectivityService connectivity,
+    required WalletRepository walletRepository,
   }) : _repository = repository,
        _connectivity = connectivity,
+       _walletRepository = walletRepository,
        super(const SyncIdle()) {
     _resetStaleDuplicateRejections();
     _sub = _connectivity.onStatusChange.listen((online) {
@@ -24,6 +27,7 @@ class SyncCubit extends Cubit<SyncState> {
 
   final SyncRepository _repository;
   final ConnectivityService _connectivity;
+  final WalletRepository _walletRepository;
   StreamSubscription<bool>? _sub;
   Timer? _retryTimer;
   bool _running = false;
@@ -34,11 +38,29 @@ class SyncCubit extends Cubit<SyncState> {
     _running = true;
     if (!isClosed) emit(const SyncRunning());
     try {
-      final result = await _repository.drainPending();
+      final drainResult = await _repository.drainPending();
       if (isClosed) return;
-      switch (result) {
+      switch (drainResult) {
         case Success(:final data):
-          emit(SyncIdle(synced: data.synced, failed: data.failed));
+          var reconciled = 0;
+          try {
+            final publicKey = await _walletRepository.ensureKeyPair();
+            final reconcileResult =
+                await _repository.pullAndReconcile(publicKey);
+            if (reconcileResult case Success(:final data)) {
+              reconciled = data.reconciled;
+            }
+          } catch (_) {
+            // Reconciliation is best-effort; a failure here must not prevent
+            // the cubit from settling into SyncIdle.
+          }
+          if (!isClosed) {
+            emit(SyncIdle(
+              synced: data.synced,
+              failed: data.failed,
+              reconciled: reconciled,
+            ));
+          }
         case Failure(:final error):
           emit(SyncFailure(error.message));
       }

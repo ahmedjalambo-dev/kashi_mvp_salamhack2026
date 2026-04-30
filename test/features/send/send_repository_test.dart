@@ -170,20 +170,20 @@ void main() {
   });
 
   group('cancelPendingTransaction', () {
-    test('returns Success when markCancelled affects 1 row', () async {
-      when(() => pendingTx.markCancelled(any())).thenAnswer((_) async => 1);
+    test('returns Success when markVoidedLocally affects 1 row', () async {
+      when(() => pendingTx.markVoidedLocally(any())).thenAnswer((_) async => 1);
 
       final result = await repo.cancelPendingTransaction('tx-id', 10.0);
 
       expect(result, isA<Success<int>>());
       expect((result as Success<int>).data, 1);
-      verify(() => pendingTx.markCancelled('tx-id')).called(1);
+      verify(() => pendingTx.markVoidedLocally('tx-id')).called(1);
     });
 
     test(
-      'returns Failure(ALREADY_SYNCED) when markCancelled affects 0 rows',
+      'returns Failure(ALREADY_SYNCED) when markVoidedLocally affects 0 rows',
       () async {
-        when(() => pendingTx.markCancelled(any())).thenAnswer((_) async => 0);
+        when(() => pendingTx.markVoidedLocally(any())).thenAnswer((_) async => 0);
 
         final result = await repo.cancelPendingTransaction('tx-id', 10.0);
 
@@ -194,7 +194,7 @@ void main() {
 
     test('returns Failure when service throws', () async {
       when(
-        () => pendingTx.markCancelled(any()),
+        () => pendingTx.markVoidedLocally(any()),
       ).thenThrow(Exception('db error'));
 
       final result = await repo.cancelPendingTransaction('tx-id', 10.0);

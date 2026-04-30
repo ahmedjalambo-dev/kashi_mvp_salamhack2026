@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
@@ -5,9 +7,14 @@ import '../data/repositories/wallet_repository.dart';
 import 'wallet_state.dart';
 
 class WalletCubit extends Cubit<WalletState> {
-  WalletCubit(this._repository) : super(const WalletInitial());
+  WalletCubit(this._repository) : super(const WalletInitial()) {
+    _cacheChangeSub = _repository.onCacheChange.listen((_) {
+      _onCacheChanged();
+    });
+  }
 
   final WalletRepository _repository;
+  StreamSubscription<void>? _cacheChangeSub;
 
   Future<void> initialize() async {
     emit(const WalletLoading());
@@ -58,7 +65,22 @@ class WalletCubit extends Cubit<WalletState> {
     }
   }
 
+  @override
+  Future<void> close() async {
+    await _cacheChangeSub?.cancel();
+    return super.close();
+  }
+
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  Future<void> _onCacheChanged() async {
+    final current = state;
+    if (isClosed || current is! WalletReady) return;
+    final cached = await _repository.loadCached(current.wallet.publicKey);
+    if (isClosed || cached == null) return;
+    final pendingOut = await _repository.pendingOutgoing(cached.publicKey);
+    if (!isClosed) emit(WalletReady(cached, pendingOut: pendingOut));
+  }
 
   Future<String?> _tryEnsureKeyPair() async {
     try {

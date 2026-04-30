@@ -3,15 +3,24 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kashi_mvp_salamhack2026/src/core/network/error_handler.dart';
 import 'package:kashi_mvp_salamhack2026/src/core/network/result.dart';
+import 'package:kashi_mvp_salamhack2026/src/features/history/data/services/history_remote_service.dart';
 import 'package:kashi_mvp_salamhack2026/src/features/sync/data/repositories/sync_repository.dart';
 import 'package:kashi_mvp_salamhack2026/src/features/sync/data/services/sync_local_service.dart';
 import 'package:kashi_mvp_salamhack2026/src/features/sync/data/services/sync_remote_service.dart';
+import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/services/wallet_local_service.dart';
+import 'package:kashi_mvp_salamhack2026/src/features/wallet/data/services/wallet_remote_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _MockSyncRemoteService extends Mock implements SyncRemoteService {}
 
 class _MockSyncLocalService extends Mock implements SyncLocalService {}
+
+class _MockHistoryRemoteService extends Mock implements HistoryRemoteService {}
+
+class _MockWalletRemoteService extends Mock implements WalletRemoteService {}
+
+class _MockWalletLocalService extends Mock implements WalletLocalService {}
 
 // A minimal pending-row fixture used by all tests.
 const _row = {
@@ -29,15 +38,24 @@ const _row = {
 void main() {
   late _MockSyncRemoteService remote;
   late _MockSyncLocalService local;
+  late _MockHistoryRemoteService historyRemote;
+  late _MockWalletRemoteService walletRemote;
+  late _MockWalletLocalService walletLocal;
   late SyncRepository repo;
 
   setUp(() {
     remote = _MockSyncRemoteService();
     local = _MockSyncLocalService();
+    historyRemote = _MockHistoryRemoteService();
+    walletRemote = _MockWalletRemoteService();
+    walletLocal = _MockWalletLocalService();
     repo = SyncRepository(
       remote: remote,
       local: local,
       errors: const ErrorHandler(),
+      remoteHistory: historyRemote,
+      walletRemote: walletRemote,
+      walletLocal: walletLocal,
     );
 
     // Default stubs — override per test.
