@@ -121,7 +121,7 @@ class PendingTxLocalService {
       "UPDATE ${AppConstants.pendingTxTable} "
       "SET status = 'pending_sync', last_error = NULL "
       "WHERE status = 'rejected' "
-      "AND (last_error LIKE '%duplicate%' OR last_error LIKE '%unique%')",
+      "AND (last_error LIKE '%duplicate%' OR last_error LIKE '%unique%' OR last_error LIKE '%caller is not receiver%')",
     );
     if (count > 0) _notify();
   }

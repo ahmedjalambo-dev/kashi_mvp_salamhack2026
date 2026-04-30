@@ -33,4 +33,16 @@ class SyncRemoteService {
     );
     return (result as Map).cast<String, dynamic>();
   }
+
+  /// Returns true if the transaction already exists in the server ledger.
+  /// Uses the RLS SELECT policy that grants participants read access, so the
+  /// sender can check whether the receiver has already settled their tx.
+  Future<bool> transactionExists(String id) async {
+    final rows = await _client
+        .from(AppConstants.transactionsTable)
+        .select('id')
+        .eq('id', id)
+        .limit(1);
+    return (rows as List).isNotEmpty;
+  }
 }

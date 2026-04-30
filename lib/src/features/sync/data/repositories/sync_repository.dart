@@ -70,6 +70,23 @@ class SyncRepository {
           }
           // Transient: sender chain hasn't synced yet — leave pending to retry.
           if (_isInsufficientFunds(e)) continue;
+          // The RPC requires the caller to own the receiver wallet, so the
+          // sender's outgoing row always hits 42501. Check if the receiver has
+          // already settled this tx server-side; if yes, mark synced so the
+          // row leaves the pending queue without incrementing failed.
+          if (_isCallerNotReceiver(e)) {
+            try {
+              if (await _remote.transactionExists(id)) {
+                await _local.markSynced(id);
+                synced++;
+              }
+              // else: receiver hasn't synced yet — leave row pending_sync for
+              // the next connectivity edge or retry timer.
+            } on SocketException {
+              return Success(SyncOutcome(synced, failed));
+            }
+            continue;
+          }
           // Permanent rejection (bad signature, other constraint, etc.)
           await _local.markRejected(id, e.message);
           failed++;
@@ -104,4 +121,11 @@ class SyncRepository {
   // P0001 is a Postgres RAISE EXCEPTION; the message is set by the RPC.
   bool _isInsufficientFunds(PostgrestException e) =>
       e.code == 'P0001' && e.message.contains('INSUFFICIENT_FUNDS');
+
+  // The RPC rejects when the caller doesn't own the receiver wallet (42501).
+  // This is the expected path for sender-originated rows — the RPC is designed
+  // for receivers only.
+  bool _isCallerNotReceiver(PostgrestException e) =>
+      e.code == '42501' ||
+      e.message.toLowerCase().contains('caller is not receiver');
 }
