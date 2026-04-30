@@ -14,6 +14,17 @@ class SendLoading extends SendState {
   const SendLoading();
 }
 
+class SendConfirming extends SendState {
+  final double amount;
+  final String receiverPublicKey;
+  const SendConfirming({
+    required this.amount,
+    required this.receiverPublicKey,
+  });
+  @override
+  List<Object?> get props => [amount, receiverPublicKey];
+}
+
 class SendReady extends SendState {
   final String qrData;
   final String transactionId;

@@ -38,6 +38,43 @@ class SendRepository {
   final PendingTxLocalService _pendingTx;
   final Random _random;
 
+  Future<Result<void>> validateAmount({
+    required String senderPublicKey,
+    required double amount,
+  }) async {
+    try {
+      if (amount <= 0) {
+        return const Failure(
+          ErrorModel(message: 'Amount must be greater than 0', code: 'AMOUNT'),
+        );
+      }
+      final cached = await _walletLocal.loadCached(senderPublicKey);
+      if (cached == null) {
+        return const Failure(
+          ErrorModel(
+            message:
+                'Balance not yet synced. Connect to the internet once before sending.',
+            code: 'NO_CACHE',
+          ),
+        );
+      }
+      final reserved = await _pendingTx.pendingOutgoingSum(senderPublicKey);
+      final available = cached.balance - reserved;
+      if (amount > available) {
+        return Failure(
+          ErrorModel(
+            message:
+                'Insufficient funds. Available: ${available.toStringAsFixed(2)}',
+            code: 'INSUFFICIENT_FUNDS',
+          ),
+        );
+      }
+      return const Success(null);
+    } catch (e) {
+      return Failure(_errors.map(e));
+    }
+  }
+
   Future<Result<({String qrData, String transactionId})>> buildSignedQr({
     required String senderPublicKey,
     required String receiverPublicKey,
