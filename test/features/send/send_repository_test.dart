@@ -24,6 +24,9 @@ class _MockPendingTxLocalService extends Mock
 
 class _FakeSignedEnvelope extends Fake implements SignedEnvelope {}
 
+// Convenience alias for the record type returned by buildSignedQr.
+typedef _QrResult = ({String qrData, String transactionId});
+
 void main() {
   setUpAll(() {
     registerFallbackValue(_FakeSignedEnvelope());
@@ -73,14 +76,30 @@ void main() {
       receiverPublicKey: 'receiver-pub',
       amount: 12.5,
     );
-    expect(result, isA<Success<String>>());
-    final qr = (result as Success<String>).data;
+    expect(result, isA<Success<_QrResult>>());
+    final qr = (result as Success<_QrResult>).data.qrData;
     final envelope = SignedEnvelope.fromJson(
       (jsonDecode(utf8.decode(base64Decode(qr))) as Map)
           .cast<String, dynamic>(),
     );
     expect(envelope.payload.amount, 12.5);
     expect(paymentSigner.verify(envelope.payload, envelope.signature), isTrue);
+  });
+
+  test('returns the transaction id alongside the QR data', () async {
+    final result = await repo.buildSignedQr(
+      senderPublicKey: pair.publicKeyBase64,
+      receiverPublicKey: 'receiver-pub',
+      amount: 5,
+    );
+    final data = (result as Success<_QrResult>).data;
+    expect(data.transactionId, isNotEmpty);
+    // The id should match what is embedded in the QR payload.
+    final envelope = SignedEnvelope.fromJson(
+      (jsonDecode(utf8.decode(base64Decode(data.qrData))) as Map)
+          .cast<String, dynamic>(),
+    );
+    expect(data.transactionId, envelope.payload.id);
   });
 
   test('inserts an optimistic pending row on success', () async {
@@ -98,7 +117,7 @@ void main() {
       receiverPublicKey: 'r',
       amount: 0,
     );
-    expect(result, isA<Failure<String>>());
+    expect(result, isA<Failure<_QrResult>>());
     verifyNever(() => pendingTx.insert(any()));
   });
 
@@ -109,7 +128,7 @@ void main() {
       receiverPublicKey: 'r',
       amount: 10,
     );
-    final failure = result as Failure<String>;
+    final failure = result as Failure<_QrResult>;
     expect(failure.error.code, 'NO_CACHE');
     verifyNever(() => pendingTx.insert(any()));
   });
@@ -122,7 +141,7 @@ void main() {
       receiverPublicKey: 'r',
       amount: 50,
     );
-    final failure = result as Failure<String>;
+    final failure = result as Failure<_QrResult>;
     expect(failure.error.code, 'INSUFFICIENT_FUNDS');
     verifyNever(() => pendingTx.insert(any()));
   });
@@ -135,7 +154,7 @@ void main() {
       receiverPublicKey: 'r',
       amount: 60,
     );
-    expect(result, isA<Success<String>>());
+    expect(result, isA<Success<_QrResult>>());
     verify(() => pendingTx.insert(any())).called(1);
   });
 
@@ -146,7 +165,41 @@ void main() {
       receiverPublicKey: 'r',
       amount: 1,
     );
-    expect(result, isA<Failure<String>>());
+    expect(result, isA<Failure<_QrResult>>());
     verifyNever(() => pendingTx.insert(any()));
+  });
+
+  group('cancelPendingTransaction', () {
+    test('returns Success when markCancelled affects 1 row', () async {
+      when(() => pendingTx.markCancelled(any())).thenAnswer((_) async => 1);
+
+      final result = await repo.cancelPendingTransaction('tx-id', 10.0);
+
+      expect(result, isA<Success<int>>());
+      expect((result as Success<int>).data, 1);
+      verify(() => pendingTx.markCancelled('tx-id')).called(1);
+    });
+
+    test(
+      'returns Failure(ALREADY_SYNCED) when markCancelled affects 0 rows',
+      () async {
+        when(() => pendingTx.markCancelled(any())).thenAnswer((_) async => 0);
+
+        final result = await repo.cancelPendingTransaction('tx-id', 10.0);
+
+        expect(result, isA<Failure<int>>());
+        expect((result as Failure<int>).error.code, 'ALREADY_SYNCED');
+      },
+    );
+
+    test('returns Failure when service throws', () async {
+      when(
+        () => pendingTx.markCancelled(any()),
+      ).thenThrow(Exception('db error'));
+
+      final result = await repo.cancelPendingTransaction('tx-id', 10.0);
+
+      expect(result, isA<Failure<int>>());
+    });
   });
 }

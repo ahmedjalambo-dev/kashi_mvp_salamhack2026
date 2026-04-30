@@ -38,7 +38,7 @@ class SendRepository {
   final PendingTxLocalService _pendingTx;
   final Random _random;
 
-  Future<Result<String>> buildSignedQr({
+  Future<Result<({String qrData, String transactionId})>> buildSignedQr({
     required String senderPublicKey,
     required String receiverPublicKey,
     required double amount,
@@ -103,7 +103,30 @@ class SendRepository {
       // receiver) reaches Supabase first wins and the other becomes a no-op.
       await _pendingTx.insert(envelope);
 
-      return Success(base64Encode(utf8.encode(jsonEncode(envelope.toJson()))));
+      return Success((
+        qrData: base64Encode(utf8.encode(jsonEncode(envelope.toJson()))),
+        transactionId: payload.id,
+      ));
+    } catch (e) {
+      return Failure(_errors.map(e));
+    }
+  }
+
+  Future<Result<int>> cancelPendingTransaction(
+    String transactionId,
+    double amount, // amount kept for API symmetry; the math is done via pendingOutgoingSum
+  ) async {
+    try {
+      final affected = await _pendingTx.markCancelled(transactionId);
+      if (affected == 0) {
+        return const Failure(
+          ErrorModel(
+            message: 'This transfer was already synced — too late to cancel.',
+            code: 'ALREADY_SYNCED',
+          ),
+        );
+      }
+      return Success(affected);
     } catch (e) {
       return Failure(_errors.map(e));
     }
