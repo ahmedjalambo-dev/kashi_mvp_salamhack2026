@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_cubit.dart';
+import 'package:kashi_mvp_salamhack2026/src/features/sync/state/sync_state.dart';
 
 import '../../state/history_cubit.dart';
 import '../../state/history_state.dart';
@@ -109,6 +111,24 @@ class _Header extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text('$count', style: theme.textTheme.labelSmall),
+              ),
+              Spacer(),
+              BlocBuilder<SyncCubit, SyncState>(
+                builder: (context, state) {
+                  return IconButton(
+                    tooltip: 'Sync',
+                    onPressed: state is SyncRunning
+                        ? null
+                        : () => context.read<SyncCubit>().runOnce(),
+                    icon: state is SyncRunning
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.sync),
+                  );
+                },
               ),
             ],
           ),

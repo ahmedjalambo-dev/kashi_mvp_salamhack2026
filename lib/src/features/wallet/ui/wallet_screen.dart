@@ -42,28 +42,7 @@ class _WalletScreenState extends State<WalletScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kashi Wallet'),
-        actions: [
-          BlocBuilder<SyncCubit, SyncState>(
-            builder: (context, state) {
-              return IconButton(
-                tooltip: 'Sync',
-                onPressed: state is SyncRunning
-                    ? null
-                    : () => context.read<SyncCubit>().runOnce(),
-                icon: state is SyncRunning
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.sync),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Kashi Wallet')),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           return switch (state) {
