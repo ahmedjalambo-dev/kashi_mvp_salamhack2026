@@ -112,6 +112,21 @@ class PendingTxLocalService {
     _notify();
   }
 
+  /// Cancels an outgoing pending row, returning the number of rows affected.
+  /// Returns 0 if the row was already settled (synced/rejected) — the caller
+  /// should treat that as "too late to cancel".
+  Future<int> markCancelled(String id) async {
+    final db = await _db.database;
+    final affected = await db.update(
+      AppConstants.pendingTxTable,
+      {'status': 'cancelled', 'last_error': null},
+      where: 'id = ? AND status = ?',
+      whereArgs: [id, 'pending_sync'],
+    );
+    if (affected > 0) _notify();
+    return affected;
+  }
+
   /// Flip stale rejected rows that look like duplicate-key errors back to
   /// pending_sync so the next drain can re-classify them correctly. Runs once
   /// at app startup via SyncCubit to recover from the pre-fix bug.

@@ -31,8 +31,32 @@ class SendCubit extends Cubit<SendState> {
     switch (result) {
       case Success(:final data):
         emit(
-          SendReady(qrData: data, amount: amount, receiverPublicKey: recipient),
+          SendReady(
+            qrData: data.qrData,
+            transactionId: data.transactionId,
+            amount: amount,
+            receiverPublicKey: recipient,
+          ),
         );
+      case Failure(:final error):
+        emit(SendFailure(error.message));
+    }
+  }
+
+  Future<void> cancelTransfer() async {
+    final s = state;
+    if (s is! SendReady) return;
+    emit(const SendLoading());
+    final result = await _repository.cancelPendingTransaction(
+      s.transactionId,
+      s.amount,
+    );
+    if (isClosed) return;
+    switch (result) {
+      case Success():
+        amountController.clear();
+        recipientController.clear();
+        emit(const SendInitial());
       case Failure(:final error):
         emit(SendFailure(error.message));
     }

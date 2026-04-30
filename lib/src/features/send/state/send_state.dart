@@ -16,15 +16,17 @@ class SendLoading extends SendState {
 
 class SendReady extends SendState {
   final String qrData;
+  final String transactionId;
   final double amount;
   final String receiverPublicKey;
   const SendReady({
     required this.qrData,
+    required this.transactionId,
     required this.amount,
     required this.receiverPublicKey,
   });
   @override
-  List<Object?> get props => [qrData, amount, receiverPublicKey];
+  List<Object?> get props => [qrData, transactionId, amount, receiverPublicKey];
 }
 
 class SendFailure extends SendState {
