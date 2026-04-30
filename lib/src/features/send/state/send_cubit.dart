@@ -17,30 +17,49 @@ class SendCubit extends Cubit<SendState> {
   final recipientController = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
-  Future<void> createPayment() async {
+  Future<void> reviewTransfer(double amount) async {
     if (!(formKey.currentState?.validate() ?? false)) return;
-    final amount = double.tryParse(amountController.text.trim()) ?? 0;
     final recipient = recipientController.text.trim();
-
     emit(const SendLoading());
-    final result = await _repository.buildSignedQr(
+    final result = await _repository.validateAmount(
       senderPublicKey: senderPublicKey,
-      receiverPublicKey: recipient,
       amount: amount,
     );
+    if (isClosed) return;
     switch (result) {
-      case Success(:final data):
-        emit(
-          SendReady(
-            qrData: data.qrData,
-            transactionId: data.transactionId,
-            amount: amount,
-            receiverPublicKey: recipient,
-          ),
-        );
+      case Success():
+        emit(SendConfirming(amount: amount, receiverPublicKey: recipient));
       case Failure(:final error):
         emit(SendFailure(error.message));
     }
+  }
+
+  Future<void> confirmAndGenerateQR() async {
+    final s = state;
+    if (s is! SendConfirming) return;
+    emit(const SendLoading());
+    final result = await _repository.buildSignedQr(
+      senderPublicKey: senderPublicKey,
+      receiverPublicKey: s.receiverPublicKey,
+      amount: s.amount,
+    );
+    if (isClosed) return;
+    switch (result) {
+      case Success(:final data):
+        emit(SendReady(
+          qrData: data.qrData,
+          transactionId: data.transactionId,
+          amount: s.amount,
+          receiverPublicKey: s.receiverPublicKey,
+        ));
+      case Failure(:final error):
+        emit(SendFailure(error.message));
+    }
+  }
+
+  void cancelReview() {
+    if (state is! SendConfirming) return;
+    emit(const SendInitial());
   }
 
   Future<void> cancelTransfer() async {

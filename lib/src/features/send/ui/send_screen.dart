@@ -14,19 +14,46 @@ class SendScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Send')),
-      body: BlocBuilder<SendCubit, SendState>(
-        builder: (context, state) {
+      body: BlocListener<SendCubit, SendState>(
+        listenWhen: (_, s) => s is SendConfirming,
+        listener: (context, state) {
           final cubit = context.read<SendCubit>();
-          return switch (state) {
-            SendLoading() => const LoadingView(message: 'Signing payment…'),
-            SendReady(:final qrData, :final amount) => _QrView(
-              qrData: qrData,
-              amount: amount,
-              cubit: cubit,
+          final s = state as SendConfirming;
+          showModalBottomSheet<void>(
+            context: context,
+            isDismissible: false,
+            enableDrag: false,
+            isScrollControlled: true,
+            builder: (sheetCtx) => _ConfirmSendSheet(
+              amount: s.amount,
+              receiverPublicKey: s.receiverPublicKey,
+              onConfirm: () {
+                Navigator.pop(sheetCtx);
+                cubit.confirmAndGenerateQR();
+              },
+              onCancel: () {
+                Navigator.pop(sheetCtx);
+                cubit.cancelReview();
+              },
             ),
-            _ => _SendForm(error: state is SendFailure ? state.message : null),
-          };
+          );
         },
+        child: BlocBuilder<SendCubit, SendState>(
+          builder: (context, state) {
+            final cubit = context.read<SendCubit>();
+            return switch (state) {
+              SendLoading() => const LoadingView(message: 'Signing payment…'),
+              SendReady(:final qrData, :final amount) => _QrView(
+                qrData: qrData,
+                amount: amount,
+                cubit: cubit,
+              ),
+              SendConfirming() =>
+                const _SendForm(error: null),
+              _ => _SendForm(error: state is SendFailure ? state.message : null),
+            };
+          },
+        ),
       ),
     );
   }
@@ -155,7 +182,11 @@ class _SendForm extends StatelessWidget {
             AmountInput(controller: cubit.amountController),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: cubit.createPayment,
+              onPressed: () {
+                final amount =
+                    double.tryParse(cubit.amountController.text.trim()) ?? 0;
+                cubit.reviewTransfer(amount);
+              },
               icon: const Icon(Icons.qr_code),
               label: const Text('Generate QR'),
             ),
@@ -163,6 +194,65 @@ class _SendForm extends StatelessWidget {
               const SizedBox(height: 16),
               Text(error!, style: const TextStyle(color: Colors.redAccent)),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConfirmSendSheet extends StatelessWidget {
+  const _ConfirmSendSheet({
+    required this.amount,
+    required this.receiverPublicKey,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  final double amount;
+  final String receiverPublicKey;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Review transfer', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 16),
+            Text('You are about to send', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            Text(
+              amount.toStringAsFixed(2),
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('To', style: theme.textTheme.labelMedium),
+            const SizedBox(height: 4),
+            SelectableText(
+              receiverPublicKey,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 32),
+            FilledButton(
+              onPressed: onConfirm,
+              child: const Text('Confirm & Generate'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: onCancel,
+              child: const Text('Cancel'),
+            ),
           ],
         ),
       ),

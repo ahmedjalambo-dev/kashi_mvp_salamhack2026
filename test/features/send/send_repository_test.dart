@@ -169,6 +169,52 @@ void main() {
     verifyNever(() => pendingTx.insert(any()));
   });
 
+  group('validateAmount', () {
+    test('returns Success(null) for amount within available balance', () async {
+      final result = await repo.validateAmount(
+        senderPublicKey: senderPub,
+        amount: 50,
+      );
+      expect(result, isA<Success<void>>());
+      verifyNever(() => pendingTx.insert(any()));
+    });
+
+    test('returns Failure(AMOUNT) for amount <= 0', () async {
+      final result = await repo.validateAmount(
+        senderPublicKey: senderPub,
+        amount: 0,
+      );
+      expect((result as Failure).error.code, 'AMOUNT');
+      verifyNever(() => pendingTx.insert(any()));
+    });
+
+    test('returns Failure(NO_CACHE) when loadCached returns null', () async {
+      when(() => walletLocal.loadCached(any())).thenAnswer((_) async => null);
+      final result = await repo.validateAmount(
+        senderPublicKey: senderPub,
+        amount: 10,
+      );
+      expect((result as Failure).error.code, 'NO_CACHE');
+      verifyNever(() => pendingTx.insert(any()));
+    });
+
+    test('returns Failure(INSUFFICIENT_FUNDS) when amount > balance − reserved',
+        () async {
+      when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 60);
+      final result = await repo.validateAmount(
+        senderPublicKey: senderPub,
+        amount: 50, // balance=100, reserved=60 → available=40
+      );
+      expect((result as Failure).error.code, 'INSUFFICIENT_FUNDS');
+      verifyNever(() => pendingTx.insert(any()));
+    });
+
+    test('does not call pendingTx.insert under any path', () async {
+      await repo.validateAmount(senderPublicKey: senderPub, amount: 10);
+      verifyNever(() => pendingTx.insert(any()));
+    });
+  });
+
   group('cancelPendingTransaction', () {
     test('returns Success when markVoidedLocally affects 1 row', () async {
       when(() => pendingTx.markVoidedLocally(any())).thenAnswer((_) async => 1);
