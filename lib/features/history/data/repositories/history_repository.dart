@@ -36,17 +36,27 @@ class HistoryRepository {
   }
 
   /// Fetches the latest confirmed transactions from Supabase, writes them
-  /// into the cache, and returns a fresh snapshot. Pending rows are read
-  /// from local storage either way (they live only on-device).
+  /// into the cache, reconciles settled request rows, and returns a fresh
+  /// snapshot.
   Future<Result<HistorySnapshot>> refreshRemote(String publicKey) async {
     try {
       final remote = await _remote.fetchFor(publicKey);
       await _local.upsertAll(remote);
+      // Delete any pending rows that the server already settled.
+      if (remote.isNotEmpty) {
+        final ids = remote.map((t) => t.id);
+        await _local.deleteRequestsForIds(ids);
+        await _local.deleteIncomingForIds(ids);
+      }
       final pending = await _local.pendingFor(publicKey);
       final completed = await _local.cachedFor(publicKey);
       return Success(HistorySnapshot(pending: pending, completed: completed));
     } catch (e) {
       return Failure(_errors.map(e));
     }
+  }
+
+  Future<void> dismissRequest(String id) async {
+    await _local.deleteRequest(id);
   }
 }

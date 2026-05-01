@@ -34,9 +34,48 @@ class ReceiveCubit extends Cubit<ReceiveState> {
     }
   }
 
-  void markFulfilled() {
-    if (state is! ReceiveShowingRequest) return;
+  Future<void> markFulfilled() async {
+    final current = state;
+    if (current is! ReceiveShowingRequest) return;
+    // Best-effort local persistence; UI dismissal proceeds regardless.
+    await _repository.markFulfilledLocally(current.request.id);
+    if (isClosed) return;
     emit(const ReceiveDone());
+  }
+
+  /// Transitions to [ReceiveScanningConfirmation] so the UI opens the QR
+  /// scanner aimed at the sender's confirmation QR.
+  void openConfirmationScanner() {
+    final current = state;
+    if (current is! ReceiveShowingRequest) return;
+    emit(ReceiveScanningConfirmation(current.request, current.qrData));
+  }
+
+  /// Called by [ScannerView.onDetect] when the receiver scans the sender's
+  /// confirmation QR.
+  Future<void> onConfirmationScanned(String qr) async {
+    final current = state;
+    if (current is! ReceiveScanningConfirmation) return;
+    final request = current.request;
+    final qrData = current.qrData;
+    emit(ReceiveConfirmingPayment(request, qrData));
+
+    final result = await _repository.confirmEnvelope(qr, request);
+    if (isClosed) return;
+    switch (result) {
+      case Success():
+        emit(const ReceiveDone());
+      case Failure(:final error):
+        // Return to the request view with an inline error so the user can
+        // retry scanning without losing the request QR.
+        emit(
+          ReceiveShowingRequest(
+            qrData: qrData,
+            request: request,
+            errorMessage: error.message,
+          ),
+        );
+    }
   }
 
   void restart() {

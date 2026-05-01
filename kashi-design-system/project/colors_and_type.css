@@ -1,0 +1,249 @@
+/* =====================================================================
+   Kashi Design System — Tokens
+   Colors, type, spacing, radii, shadows, motion. Light + dark.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ---------- Brand colors ---------- */
+  --kashi-olive: #2D5F3F;          /* Primary — deep olive */
+  --kashi-olive-700: #234B32;      /* Pressed / darker */
+  --kashi-olive-300: #6B9B7C;      /* Light olive for backgrounds */
+  --kashi-olive-50:  #EAF2EC;      /* Tint — banners, soft fills */
+
+  --kashi-terracotta: #C76F3F;     /* Secondary — warm earth */
+  --kashi-terracotta-700: #A4582E;
+  --kashi-terracotta-50:  #FBEFE6;
+
+  --kashi-gold: #D4A24C;           /* Accent — premium, key actions */
+  --kashi-gold-700: #B0833A;
+  --kashi-gold-50:  #FBF3E1;
+
+  /* ---------- Semantic ---------- */
+  --color-success: #4CAF50;
+  --color-success-bg: #E8F5E9;
+  --color-warning: #FF9800;
+  --color-warning-bg: #FFF4E5;
+  --color-error: #E53935;
+  --color-error-bg: #FCEAEA;
+  --color-info: #2D5F3F;          /* Reuse olive for info */
+  --color-info-bg: #EAF2EC;
+
+  /* ---------- Neutrals (light) ---------- */
+  --bg:           #FAF8F5;        /* Page background — warm off-white */
+  --surface:      #FFFFFF;        /* Cards, sheets */
+  --surface-2:    #F4F1EB;        /* Sunken / inset surfaces */
+  --fg:           #1A1A1A;        /* Primary text */
+  --fg-2:         #6B6B6B;        /* Secondary text */
+  --fg-3:         #9A9A9A;        /* Tertiary / disabled */
+  --border:       #E8E5E0;        /* Hairlines */
+  --border-strong:#D4CFC6;
+  --scrim:        rgba(15, 22, 18, 0.5);
+
+  /* ---------- Type ---------- */
+  --font-en:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-ar:    'IBM Plex Sans Arabic', 'Tajawal', 'Inter', sans-serif;
+  --font-mono:  'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Type scale (English baseline; Arabic is sized +1–2px optically) */
+  --fs-display:   48px;
+  --fs-h1:        32px;
+  --fs-h2:        24px;
+  --fs-h3:        20px;
+  --fs-body:      16px;
+  --fs-caption:   14px;
+  --fs-micro:     12px;
+
+  --lh-display: 1.1;
+  --lh-heading: 1.25;
+  --lh-body:    1.5;
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  /* Tabular figures everywhere we render numbers */
+  --num-feat: "tnum" 1, "lnum" 1;
+
+  /* ---------- Spacing (8px grid) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---------- Radii ---------- */
+  --r-input:   12px;
+  --r-card:    16px;
+  --r-button:  24px;
+  --r-balance: 24px;
+  --r-pill:    999px;
+
+  /* ---------- Shadows (subtle, never heavy) ---------- */
+  --shadow-sm:      0 1px 2px rgba(26,26,26,0.04);
+  --shadow-md:      0 4px 12px rgba(26,26,26,0.06);
+  --shadow-lg:      0 12px 32px rgba(26,26,26,0.08);
+  --shadow-balance: 0 8px 24px rgba(45,95,63,0.18);
+  --shadow-focus:   0 0 0 2px var(--bg), 0 0 0 4px var(--kashi-olive);
+
+  /* ---------- Motion ---------- */
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:    150ms;
+  --dur-medium:  250ms;
+  --dur-slow:    600ms;
+
+  /* ---------- Layout ---------- */
+  --touch-min: 48px;       /* WCAG / brief minimum */
+  --nav-height: 72px;
+}
+
+/* ---------------- Dark mode ---------------- */
+:root[data-theme="dark"], .theme-dark {
+  --kashi-olive:     #4A8A65;
+  --kashi-olive-700: #3D7355;
+  --kashi-olive-300: #6FAE8A;
+  --kashi-olive-50:  #1F2E26;
+
+  --kashi-terracotta-50: #2A1F18;
+  --kashi-gold-50:       #2B2418;
+
+  --bg:            #0F1612;
+  --surface:       #1A2620;
+  --surface-2:     #243029;
+  --fg:            #F5F2EC;
+  --fg-2:          #A9B0AB;
+  --fg-3:          #6E7670;
+  --border:        #2C3A33;
+  --border-strong: #3C4B43;
+  --scrim:         rgba(0, 0, 0, 0.6);
+
+  --color-success-bg: #16291A;
+  --color-warning-bg: #2B1F0F;
+  --color-error-bg:   #2B1414;
+  --color-info-bg:    #1F2E26;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.45);
+  --shadow-balance: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+/* =====================================================================
+   Base + semantic element styles
+   ===================================================================== */
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-en);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-feature-settings: var(--num-feat);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[dir="rtl"], .lang-ar { font-family: var(--font-ar); }
+
+h1, .h1 { font-size: var(--fs-h1); line-height: var(--lh-heading); font-weight: var(--fw-bold); margin: 0; letter-spacing: -0.01em; }
+h2, .h2 { font-size: var(--fs-h2); line-height: var(--lh-heading); font-weight: var(--fw-semibold); margin: 0; }
+h3, .h3 { font-size: var(--fs-h3); line-height: var(--lh-heading); font-weight: var(--fw-semibold); margin: 0; }
+.display { font-size: var(--fs-display); line-height: var(--lh-display); font-weight: var(--fw-bold); letter-spacing: -0.02em; }
+.body    { font-size: var(--fs-body); line-height: var(--lh-body); font-weight: var(--fw-regular); }
+.caption { font-size: var(--fs-caption); line-height: 1.4; font-weight: var(--fw-medium); color: var(--fg-2); }
+.micro   { font-size: var(--fs-micro); line-height: 1.3; font-weight: var(--fw-medium); color: var(--fg-2); letter-spacing: 0.02em; }
+.mono    { font-family: var(--font-mono); font-feature-settings: var(--num-feat); }
+.num     { font-feature-settings: var(--num-feat); font-variant-numeric: tabular-nums; }
+
+/* =====================================================================
+   Buttons (token-driven so UI kits can compose)
+   ===================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-6);
+  border: none;
+  border-radius: var(--r-button);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-standard),
+              background var(--dur-fast) var(--ease-standard),
+              opacity var(--dur-fast) var(--ease-standard);
+}
+.btn:active { transform: scale(0.98); opacity: 0.9; }
+.btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+.btn-primary   { background: var(--kashi-olive); color: #fff; }
+.btn-primary:hover   { background: var(--kashi-olive-700); }
+.btn-secondary { background: var(--surface); color: var(--fg); border: 1px solid var(--border-strong); }
+.btn-secondary:hover { background: var(--surface-2); }
+.btn-accent    { background: var(--kashi-gold); color: #1A1A1A; }
+.btn-accent:hover    { background: var(--kashi-gold-700); color: #fff; }
+.btn-ghost     { background: transparent; color: var(--kashi-olive); }
+.btn-ghost:hover { background: var(--kashi-olive-50); }
+
+/* =====================================================================
+   Inputs
+   ===================================================================== */
+
+.input {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-4);
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-input);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  transition: border-color var(--dur-fast) var(--ease-standard),
+              box-shadow var(--dur-fast) var(--ease-standard);
+}
+.input::placeholder { color: var(--fg-3); }
+.input:focus { outline: none; border-color: var(--kashi-olive); box-shadow: 0 0 0 3px var(--kashi-olive-50); }
+
+/* =====================================================================
+   Cards
+   ===================================================================== */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-5);
+}
+.card-flat { box-shadow: none; border: 1px solid var(--border); }
+
+/* =====================================================================
+   Pills / badges (status: icon + text + color, never color alone)
+   ===================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+}
+.badge-success { background: var(--color-success-bg); color: #2E7D32; }
+.badge-warning { background: var(--color-warning-bg); color: #B86E00; }
+.badge-error   { background: var(--color-error-bg);   color: #B71C1C; }
+.badge-info    { background: var(--color-info-bg);    color: var(--kashi-olive); }

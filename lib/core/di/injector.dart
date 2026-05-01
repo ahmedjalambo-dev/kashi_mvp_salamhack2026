@@ -13,6 +13,8 @@ import '../../features/history/data/repositories/history_repository.dart';
 import '../../features/history/data/services/history_local_service.dart';
 import '../../features/history/data/services/history_remote_service.dart';
 import '../../features/receive/data/repositories/receive_repository.dart';
+import '../../features/receive/data/services/incoming_pending_local_service.dart';
+import '../../features/receive/data/services/pending_request_local_service.dart';
 import '../../features/receive/data/services/pending_tx_local_service.dart';
 import '../../features/send/data/repositories/send_repository.dart';
 import '../../features/send/data/services/payment_signer.dart';
@@ -41,6 +43,8 @@ void configureDependencies() {
 
   // Shared local services (registered early; referenced by Wallet + Send)
   getIt.registerLazySingleton(() => PendingTxLocalService());
+  getIt.registerLazySingleton(() => PendingRequestLocalService());
+  getIt.registerLazySingleton(() => IncomingPendingLocalService());
   getIt.registerLazySingleton(() => WalletLocalService());
 
   // Wallet
@@ -82,12 +86,20 @@ void configureDependencies() {
       qrCodec: getIt<QrCodec>(),
       uuid: getIt<Uuid>(),
       errors: getIt<ErrorHandler>(),
+      pendingRequests: getIt<PendingRequestLocalService>(),
+      incomingPending: getIt<IncomingPendingLocalService>(),
+      paymentSigner: getIt<PaymentSigner>(),
     ),
   );
 
   // Sync
   getIt.registerLazySingleton(() => SyncRemoteService(getIt<SupabaseClient>()));
-  getIt.registerLazySingleton(() => SyncLocalService());
+  getIt.registerLazySingleton(
+    () => SyncLocalService(
+      getIt<PendingTxLocalService>(),
+      getIt<IncomingPendingLocalService>(),
+    ),
+  );
   getIt.registerLazySingleton(
     () => SyncRepository(
       remote: getIt<SyncRemoteService>(),
@@ -114,7 +126,11 @@ void configureDependencies() {
     () => HistoryRemoteService(getIt<SupabaseClient>()),
   );
   getIt.registerLazySingleton(
-    () => HistoryLocalService(pending: getIt<PendingTxLocalService>()),
+    () => HistoryLocalService(
+      pending: getIt<PendingTxLocalService>(),
+      requests: getIt<PendingRequestLocalService>(),
+      incomingPending: getIt<IncomingPendingLocalService>(),
+    ),
   );
   getIt.registerLazySingleton(
     () => HistoryRepository(

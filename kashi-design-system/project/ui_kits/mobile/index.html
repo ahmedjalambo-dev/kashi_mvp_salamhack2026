@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kashi · Mobile UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body { height: 100%; }
+  body { margin: 0; background: #EFECE5; display: flex; align-items: center; justify-content: center; padding: 24px; gap: 24px; flex-wrap: wrap; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .stage-label { font-family: var(--font-en); font-size: 12px; font-weight: 600; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.08em; }
+  .screen { background: var(--bg); height: 100%; position: relative; overflow: hidden; padding-top: 54px; box-sizing: border-box; }
+  .scroll { height: calc(100% - 80px - 54px); overflow-y: auto; padding-top: 8px; }
+  .full   { height: calc(100% - 54px); }
+  /* Hide scrollbar */
+  .scroll::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <div id="root"></div>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    function Phone({ label, children, time = "9:41" }) {
+      return (
+        <div className="stage" data-screen-label={label}>
+          <IOSDevice width={390} height={780}>
+            <div className="screen">{children}</div>
+          </IOSDevice>
+          <div className="stage-label">{label}</div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [screen, setScreen] = useState("home");
+      const [tab, setTab] = useState("home");
+
+      const renderInteractive = () => {
+        switch (screen) {
+          case "send":    return <SendScreen onBack={() => setScreen("home")} onSend={() => setScreen("offline")}/>;
+          case "offline": return <OfflinePayScreen onBack={() => setScreen("home")} onConfirm={() => setScreen("success")}/>;
+          case "success": return <SuccessScreen onDone={() => setScreen("home")}/>;
+          case "activity":return <ActivityScreen onBack={() => setScreen("home")}/>;
+          default:        return <HomeScreen onNav={(d) => setScreen(d === "topup" ? "home" : d === "receive" ? "activity" : d)}/>;
+        }
+      };
+
+      return (
+        <>
+          <Phone label="01 Home">
+            <div className="scroll"><HomeScreen onNav={() => {}}/></div>
+            <BottomNav active="home" onChange={() => {}}/>
+          </Phone>
+
+          <Phone label="02 Send money">
+            <div className="scroll"><SendScreen onBack={() => {}} onSend={() => {}}/></div>
+            <BottomNav active="home" onChange={() => {}}/>
+          </Phone>
+
+          <Phone label="03 Offline pay (hero)">
+            <div className="scroll"><OfflinePayScreen onBack={() => {}} onConfirm={() => {}}/></div>
+            <BottomNav active="pay" onChange={() => {}}/>
+          </Phone>
+
+          <Phone label="04 Success">
+            <div className="full"><SuccessScreen onDone={() => {}}/></div>
+          </Phone>
+
+          <Phone label="05 Activity">
+            <div className="scroll"><ActivityScreen onBack={() => {}}/></div>
+            <BottomNav active="activity" onChange={() => {}}/>
+          </Phone>
+
+          <Phone label="06 Interactive prototype">
+            <div className="full" style={{ display: "flex", flexDirection: "column" }}>
+              <div className="scroll" style={{ flex: 1 }}>{renderInteractive()}</div>
+              <BottomNav active={screen === "activity" ? "activity" : screen === "offline" ? "pay" : "home"} onChange={(t) => { if (t === "pay") setScreen("offline"); else if (t === "activity") setScreen("activity"); else if (t === "home") setScreen("home"); }}/>
+            </div>
+          </Phone>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>

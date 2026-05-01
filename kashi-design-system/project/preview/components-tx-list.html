@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Transaction list</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; font-family: var(--font-en); background: var(--bg); }
+  .list { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; }
+  .item { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .item:last-child { border: 0; }
+  .ico { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; }
+  .ico svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .name { font-size: 15px; font-weight: 600; }
+  .sub  { font-size: 12px; color: var(--fg-2); margin-top: 2px; }
+  .amt  { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pos  { color: #2E7D32; }
+  .neg  { color: var(--fg); }
+  .ico-in  { background: #E8F5E9; color: #2E7D32; }
+  .ico-out { background: #FBEFE6; color: #A4582E; }
+</style>
+</head>
+<body>
+  <div class="list">
+    <div class="item">
+      <div class="ico ico-in"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></div>
+      <div><div class="name">From Bank of Palestine</div><div class="sub">via E-SADAD · Today</div></div>
+      <div class="amt pos">+ ₪ 500.00</div>
+    </div>
+    <div class="item">
+      <div class="ico ico-out"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></div>
+      <div><div class="name">To Mahmoud (offline)</div><div class="sub">Signed · 2:14 PM</div></div>
+      <div class="amt neg">− ₪ 80.00</div>
+    </div>
+    <div class="item">
+      <div class="ico ico-out"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></div>
+      <div><div class="name">To iBuraq · Family</div><div class="sub">Yesterday</div></div>
+      <div class="amt neg">− ₪ 250.00</div>
+    </div>
+  </div>
+</body></html>

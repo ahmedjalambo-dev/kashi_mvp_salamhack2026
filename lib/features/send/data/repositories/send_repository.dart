@@ -106,7 +106,7 @@ class SendRepository {
     }
   }
 
-  Future<Result<({String transactionId})>> signAndStore(
+  Future<Result<({String transactionId, String qrData})>> signAndStore(
     PaymentRequest request,
     String senderPublicKey,
   ) async {
@@ -121,7 +121,8 @@ class SendRepository {
       final signature = _paymentSigner.sign(payload, priv);
       final envelope = SignedEnvelope(payload: payload, signature: signature);
       await _pendingTx.insert(envelope);
-      return Success((transactionId: payload.id));
+      final qrData = _qrCodec.encodeEnvelope(envelope);
+      return Success((transactionId: payload.id, qrData: qrData));
     } catch (e) {
       return Failure(_errors.map(e));
     }

@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Type — Bilingual</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); color: var(--fg); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .col { padding: 16px; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); }
+  .lab { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); margin-bottom: 8px; }
+  .en  { font-family: var(--font-en); font-size: 22px; font-weight: 600; }
+  .en-body { font-family: var(--font-en); font-size: 15px; color: var(--fg-2); margin-top: 6px; }
+  .ar  { font-family: var(--font-ar); font-size: 24px; font-weight: 600; direction: rtl; text-align: right; }
+  .ar-body { font-family: var(--font-ar); font-size: 16px; color: var(--fg-2); margin-top: 6px; direction: rtl; text-align: right; }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="col">
+      <div class="lab">English · Inter</div>
+      <div class="en">Send money</div>
+      <div class="en-body">Pay anyone — even offline.</div>
+    </div>
+    <div class="col">
+      <div class="lab">العربية · IBM Plex Sans Arabic</div>
+      <div class="ar">إرسال الأموال</div>
+      <div class="ar-body">ادفع لأي شخص — حتى بدون اتصال.</div>
+    </div>
+  </div>
+</body></html>

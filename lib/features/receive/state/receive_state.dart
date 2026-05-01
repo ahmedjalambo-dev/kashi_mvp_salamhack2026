@@ -19,9 +19,33 @@ class ReceiveBuildingRequest extends ReceiveState {
 class ReceiveShowingRequest extends ReceiveState {
   final String qrData;
   final PaymentRequest request;
-  const ReceiveShowingRequest({required this.qrData, required this.request});
+
+  /// Non-null when the confirmation scan returned a verifiable error.
+  final String? errorMessage;
+
+  const ReceiveShowingRequest({
+    required this.qrData,
+    required this.request,
+    this.errorMessage,
+  });
   @override
-  List<Object?> get props => [qrData, request];
+  List<Object?> get props => [qrData, request, errorMessage];
+}
+
+class ReceiveScanningConfirmation extends ReceiveState {
+  final PaymentRequest request;
+  final String qrData;
+  const ReceiveScanningConfirmation(this.request, this.qrData);
+  @override
+  List<Object?> get props => [request, qrData];
+}
+
+class ReceiveConfirmingPayment extends ReceiveState {
+  final PaymentRequest request;
+  final String qrData;
+  const ReceiveConfirmingPayment(this.request, this.qrData);
+  @override
+  List<Object?> get props => [request, qrData];
 }
 
 class ReceiveDone extends ReceiveState {

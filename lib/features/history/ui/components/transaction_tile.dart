@@ -7,13 +7,20 @@ class TransactionTile extends StatelessWidget {
     super.key,
     required this.tx,
     required this.myPublicKey,
+    this.onDismiss,
   });
 
   final TransactionModel tx;
   final String myPublicKey;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
+    if (tx.kind == TxKind.request) return _buildRequestTile(context);
+    return _buildPaymentTile(context);
+  }
+
+  Widget _buildPaymentTile(BuildContext context) {
     final theme = Theme.of(context);
     final direction = tx.directionFor(myPublicKey);
     final isSent = direction == TxDirection.sent;
@@ -29,7 +36,7 @@ class TransactionTile extends StatelessWidget {
       TxStatus.pending => Icons.schedule,
       TxStatus.confirmed => isSent ? Icons.arrow_upward : Icons.arrow_downward,
     };
-    final subtitle = _subtitle(tx, myPublicKey);
+    final subtitle = _paymentSubtitle(tx, myPublicKey);
 
     return ListTile(
       leading: CircleAvatar(
@@ -52,7 +59,54 @@ class TransactionTile extends StatelessWidget {
     );
   }
 
-  String _subtitle(TransactionModel tx, String myPublicKey) {
+  Widget _buildRequestTile(BuildContext context) {
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    final expired = tx.isExpired(now);
+    final color = expired
+        ? theme.colorScheme.error
+        : theme.colorScheme.tertiary;
+    final stamp = '${tx.clientCreatedAt.toLocal()}'.split('.').first;
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: color.withValues(alpha: 0.12),
+        child: Icon(Icons.hourglass_top_rounded, color: color, size: 20),
+      ),
+      title: Text(
+        'Awaiting payment of ${tx.amount.toStringAsFixed(2)}',
+        style: theme.textTheme.titleSmall,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(stamp),
+          if (expired)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Chip(
+                label: const Text('Expired'),
+                labelStyle: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onError,
+                ),
+                backgroundColor: theme.colorScheme.error,
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+        ],
+      ),
+      trailing: expired && onDismiss != null
+          ? IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: 'Dismiss',
+              onPressed: onDismiss,
+            )
+          : null,
+    );
+  }
+
+  String _paymentSubtitle(TransactionModel tx, String myPublicKey) {
     final counterparty = tx.counterpartyFor(myPublicKey);
     final shortKey = counterparty.length > 12
         ? '${counterparty.substring(0, 8)}…${counterparty.substring(counterparty.length - 4)}'

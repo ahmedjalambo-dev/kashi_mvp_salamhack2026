@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Spacing</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); color: var(--fg); }
+  .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .cell { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; }
+  .bar  { background: var(--kashi-olive); height: 6px; border-radius: 3px; margin: 0 auto 8px; }
+  .lab  { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); }
+  .tok  { font-size: 13px; font-weight: 600; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell"><div class="bar" style="width:4px"></div><div class="tok">4</div><div class="lab">space-1</div></div>
+    <div class="cell"><div class="bar" style="width:8px"></div><div class="tok">8</div><div class="lab">space-2</div></div>
+    <div class="cell"><div class="bar" style="width:16px"></div><div class="tok">16</div><div class="lab">space-4</div></div>
+    <div class="cell"><div class="bar" style="width:24px"></div><div class="tok">24</div><div class="lab">space-6</div></div>
+    <div class="cell"><div class="bar" style="width:32px"></div><div class="tok">32</div><div class="lab">space-8</div></div>
+    <div class="cell"><div class="bar" style="width:48px"></div><div class="tok">48</div><div class="lab">space-12</div></div>
+  </div>
+</body></html>

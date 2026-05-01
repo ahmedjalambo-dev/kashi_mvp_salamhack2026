@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Kashi · Mobile App Design</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="../colors_and_type.css"/>
+  <style>
+    html, body { margin: 0; padding: 0; background: #F4F1EB; font-family: 'Inter', system-ui, sans-serif; color: #1A1A1A; }
+    * { box-sizing: border-box; }
+    /* The Android device frame around each artboard's contents */
+    .android-frame {
+      width: 412px; height: 812px;
+      border-radius: 44px; padding: 11px; background: #1a1a1a;
+      box-shadow: 0 24px 60px -20px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06);
+      position: relative;
+    }
+    .android-frame::before {
+      content: ""; position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 10px; background: #0a0a0a; border-radius: 999px; z-index: 5;
+    }
+    .android-screen {
+      width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #FAF8F5;
+      display: flex; flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="atoms.jsx"></script>
+  <script type="text/babel" src="composites.jsx"></script>
+  <script type="text/babel" src="screens-onboarding.jsx"></script>
+  <script type="text/babel" src="screens-send.jsx"></script>
+  <script type="text/babel" src="screens-receive-transfer.jsx"></script>
+
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard } = window;
+
+    // Wrap every screen in an Android-style device frame.
+    function Phone({ children }) {
+      return (
+        <div className="android-frame">
+          <div className="android-screen">{children}</div>
+        </div>
+      );
+    }
+
+    // DCSection filters children by `c.type === DCArtboard` (component
+    // identity), so the wrapper helper has to *return a DCArtboard element*
+    // and be CALLED at the JSX site (not used as a JSX tag). Hence AB() — a
+    // factory, not a component.
+    const AB = (id, label, children) =>
+      <DCArtboard key={id} id={id} label={label} width={460} height={860}>
+        <div style={{ padding: 24, display: "grid", placeItems: "center", height: "100%" }}>
+          <Phone>{children}</Phone>
+        </div>
+      </DCArtboard>;
+
+    function App() {
+      return (
+        <DesignCanvas>
+          <DCSection id="onboarding" title="Onboarding & Auth" subtitle="The first 90 seconds — phone-based signup with auto-issued PS-IBAN.">
+            {AB("01-splash", "01 · Splash", <><ScreenSplash/></>)}
+            {AB("02-phone", "02 · Phone login", <><ScreenPhone/></>)}
+            {AB("03-otp", "03 · OTP verify", <><ScreenOTP/></>)}
+            {AB("04-profile", "04 · Profile setup", <><ScreenProfile/></>)}
+          </DCSection>
+
+          <DCSection id="home" title="Home" subtitle="Wallet balance is sacred. Three primary actions, recent activity below.">
+            {AB("05-home", "05 · Home (online)", <><ScreenHome sync="online"/></>)}
+            {AB("05b-home-offl", "05b · Home (offline)", <><ScreenHome sync="offline"/></>)}
+            {AB("05c-home-pend", "05c · Home (pending)", <><ScreenHome sync="pending"/></>)}
+          </DCSection>
+
+          <DCSection id="receive" title="Receive / Top-up" subtitle="Cash in via E-SADAD from any Palestinian bank app.">
+            {AB("06-receive", "06 · Receive money", <><ScreenReceive/></>)}
+            {AB("07-success", "07 · Top-up success", <><ScreenReceiveSuccess/></>)}
+          </DCSection>
+
+          <DCSection id="send" title="⭐ Offline P2P Send — the hero flow" subtitle="Cryptographically-signed payments that work without network. Treat the QR moment ceremonially.">
+            {AB("08-amount", "08 · Amount", <><ScreenSendAmount offline/></>)}
+            {AB("09-qr", "09 · QR display", <><ScreenSendQR/></>)}
+            {AB("10-bt", "10 · Bluetooth radar", <><ScreenSendBT/></>)}
+            {AB("11-pending", "11 · Pending sync", <><ScreenSendPending/></>)}
+            {AB("12-confirmed", "12 · Online confirmed", <><ScreenSendConfirmed/></>)}
+          </DCSection>
+
+          <DCSection id="p2pin" title="⭐ Offline P2P Receive" subtitle="Trust moment: verify the signature, accept the payment, settle later.">
+            {AB("13-scan", "13 · Scan", <><ScreenScan/></>)}
+            {AB("14-verify", "14 · Verify (trust)", <><ScreenVerify/></>)}
+            {AB("15-pending", "15 · Accepted, pending", <><ScreenReceivePending/></>)}
+            {AB("16-history", "16 · History detail", <><ScreenHistoryDetail/></>)}
+          </DCSection>
+
+          <DCSection id="iburaq" title="iBuraq · Outbound bank transfer" subtitle="Lookup any phone, find linked bank accounts and wallets, send.">
+            {AB("17-lookup", "17 · Lookup", <><ScreenLookup/></>)}
+            {AB("18-pick", "18 · Pick destination", <><ScreenDestinations/></>)}
+            {AB("19-confirm", "19 · Confirm", <><ScreenTransferConfirm/></>)}
+            {AB("20-sent", "20 · Sent", <><ScreenTransferSuccess/></>)}
+          </DCSection>
+
+          <DCSection id="rtl" title="Arabic / RTL — mirrored screens" subtitle="Arabic is the primary locale. Layouts mirror; numerals stay tabular; the wallet card direction flips.">
+            {AB("r1-splash", "ar · Splash", <><ScreenSplash dir="rtl"/></>)}
+            {AB("r2-phone", "ar · Phone login", <><ScreenPhone dir="rtl"/></>)}
+            {AB("r3-home", "ar · Home", <><ScreenHome dir="rtl" sync="online"/></>)}
+            {AB("r4-amount", "ar · Send amount", <><ScreenSendAmount dir="rtl" offline/></>)}
+            {AB("r5-verify", "ar · Verify (trust)", <><ScreenVerify dir="rtl"/></>)}
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>

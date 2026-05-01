@@ -33,13 +33,15 @@ class SendSuccess extends SendState {
   final double amount;
   final String receiverPublicKey;
   final String transactionId;
+  final String qrData;
   const SendSuccess({
     required this.amount,
     required this.receiverPublicKey,
     required this.transactionId,
+    required this.qrData,
   });
   @override
-  List<Object?> get props => [amount, receiverPublicKey, transactionId];
+  List<Object?> get props => [amount, receiverPublicKey, transactionId, qrData];
 }
 
 class SendFailure extends SendState {

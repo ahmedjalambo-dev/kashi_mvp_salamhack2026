@@ -4,14 +4,18 @@ enum TxDirection { sent, received }
 
 enum TxStatus { pending, confirmed, rejected }
 
+enum TxKind { payment, request }
+
 class TransactionModel extends Equatable {
   final String id;
   final String senderPublicKey;
   final String receiverPublicKey;
   final double amount;
   final TxStatus status;
+  final TxKind kind;
   final DateTime clientCreatedAt;
   final DateTime? syncedAt;
+  final DateTime? expiresAt;
   final String? lastError;
 
   const TransactionModel({
@@ -20,10 +24,15 @@ class TransactionModel extends Equatable {
     required this.receiverPublicKey,
     required this.amount,
     required this.status,
+    this.kind = TxKind.payment,
     required this.clientCreatedAt,
     this.syncedAt,
+    this.expiresAt,
     this.lastError,
   });
+
+  bool isExpired(DateTime now) =>
+      kind == TxKind.request && expiresAt != null && now.isAfter(expiresAt!);
 
   TxDirection directionFor(String myPublicKey) =>
       senderPublicKey == myPublicKey ? TxDirection.sent : TxDirection.received;
@@ -40,8 +49,10 @@ class TransactionModel extends Equatable {
     receiverPublicKey,
     amount,
     status,
+    kind,
     clientCreatedAt,
     syncedAt,
+    expiresAt,
     lastError,
   ];
 
@@ -101,6 +112,39 @@ class TransactionModel extends Equatable {
       receiverPublicKey: row['receiver_public_key'] as String,
       amount: (row['amount'] as num).toDouble(),
       status: TxStatus.pending,
+      clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
+      lastError: row['last_error'] as String?,
+    );
+  }
+
+  /// Build a request view from a row in `pending_requests`.
+  factory TransactionModel.fromPendingRequestRow(Map<String, Object?> row) {
+    return TransactionModel(
+      id: row['id'] as String,
+      senderPublicKey: '',
+      receiverPublicKey: row['receiver_public_key'] as String,
+      amount: (row['amount'] as num).toDouble(),
+      status: TxStatus.pending,
+      kind: TxKind.request,
+      clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
+      expiresAt: DateTime.parse(row['expires_at'] as String),
+    );
+  }
+
+  /// Build a pending view from a row in `incoming_pending`.
+  ///
+  /// Direction is determined by [directionFor] at render time (comparing
+  /// [senderPublicKey] / [receiverPublicKey] against the user's own key),
+  /// so the existing [TransactionTile] payment branch renders it correctly
+  /// as "Received X.XX · Pending sync" for the receiver.
+  factory TransactionModel.fromIncomingPendingRow(Map<String, Object?> row) {
+    return TransactionModel(
+      id: row['id'] as String,
+      senderPublicKey: row['sender_public_key'] as String,
+      receiverPublicKey: row['receiver_public_key'] as String,
+      amount: (row['amount'] as num).toDouble(),
+      status: TxStatus.pending,
+      kind: TxKind.payment,
       clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
       lastError: row['last_error'] as String?,
     );

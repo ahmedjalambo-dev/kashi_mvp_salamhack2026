@@ -156,9 +156,9 @@ void main() {
 
     test('inserts a verifiable signed envelope and returns transactionId', () async {
       final result = await repo.signAndStore(request, pair.publicKeyBase64);
-      expect(result, isA<Success<({String transactionId})>>());
+      expect(result, isA<Success<({String qrData, String transactionId})>>());
       expect(
-        (result as Success<({String transactionId})>).data.transactionId,
+        (result as Success<({String qrData, String transactionId})>).data.transactionId,
         'test-id',
       );
       verify(() => pendingTx.insert(any())).called(1);

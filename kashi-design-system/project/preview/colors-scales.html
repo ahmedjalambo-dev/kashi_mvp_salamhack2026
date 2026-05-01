@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Color scales</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); }
+  .group { margin-bottom: 16px; }
+  .label { font-size: 12px; font-weight: 600; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .scale { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .step  { border-radius: 12px; padding: 14px 12px; min-height: 64px; display: flex; flex-direction: column; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; }
+  .name  { font-family: var(--font-en); font-size: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="group">
+    <div class="label">Olive scale</div>
+    <div class="scale">
+      <div class="step" style="background:#EAF2EC;color:#2D5F3F"><span class="name">olive-50</span><span>#EAF2EC</span></div>
+      <div class="step" style="background:#6B9B7C;color:#fff"><span class="name">olive-300</span><span>#6B9B7C</span></div>
+      <div class="step" style="background:#2D5F3F;color:#fff"><span class="name">olive-500</span><span>#2D5F3F</span></div>
+      <div class="step" style="background:#234B32;color:#fff"><span class="name">olive-700</span><span>#234B32</span></div>
+    </div>
+  </div>
+  <div class="group">
+    <div class="label">Terracotta scale</div>
+    <div class="scale">
+      <div class="step" style="background:#FBEFE6;color:#A4582E"><span class="name">terra-50</span><span>#FBEFE6</span></div>
+      <div class="step" style="background:#E0966B;color:#fff"><span class="name">terra-300</span><span>#E0966B</span></div>
+      <div class="step" style="background:#C76F3F;color:#fff"><span class="name">terra-500</span><span>#C76F3F</span></div>
+      <div class="step" style="background:#A4582E;color:#fff"><span class="name">terra-700</span><span>#A4582E</span></div>
+    </div>
+  </div>
+</body></html>

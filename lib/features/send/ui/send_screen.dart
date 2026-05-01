@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/components/loading_view.dart';
+import '../../../core/components/qr_view.dart';
 import '../state/send_cubit.dart';
 import '../state/send_state.dart';
 import 'components/scanner_view.dart';
@@ -45,10 +46,11 @@ class SendScreen extends StatelessWidget {
               SendVerifying() => const LoadingView(message: 'Verifying request…'),
               SendConfirming() =>
                 ScannerView(onDetect: cubit.onScan, paused: true),
-              SendSuccess(:final amount, :final receiverPublicKey) =>
+              SendSuccess(:final amount, :final receiverPublicKey, :final qrData) =>
                 _SuccessView(
                   amount: amount,
                   receiverPublicKey: receiverPublicKey,
+                  qrData: qrData,
                   onDone: () => Navigator.of(context).pop(),
                 ),
               SendFailure(:final message) => _FailureView(
@@ -126,17 +128,19 @@ class _SuccessView extends StatelessWidget {
   const _SuccessView({
     required this.amount,
     required this.receiverPublicKey,
+    required this.qrData,
     required this.onDone,
   });
 
   final double amount;
   final String receiverPublicKey;
+  final String qrData;
   final VoidCallback onDone;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -152,7 +156,15 @@ class _SuccessView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text('Will sync when online', textAlign: TextAlign.center),
+          const Text(
+            'Transaction signed. Show this QR to the receiver so they can sync independently.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          QrView(
+            data: qrData,
+            label: 'Confirmation QR — receiver scans this',
+          ),
           const SizedBox(height: 32),
           FilledButton(
             onPressed: onDone,

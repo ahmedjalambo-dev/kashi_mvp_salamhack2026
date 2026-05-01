@@ -72,6 +72,11 @@ class HistoryCubit extends Cubit<HistoryState> {
     }
   }
 
+  Future<void> dismissRequest(String id) async {
+    await _repository.dismissRequest(id);
+    await _reloadLocal();
+  }
+
   @override
   Future<void> close() async {
     await _pendingSub?.cancel();

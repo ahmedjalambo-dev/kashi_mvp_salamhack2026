@@ -47,6 +47,7 @@ class SendCubit extends Cubit<SendState> {
           amount: s.amount,
           receiverPublicKey: s.receiverPublicKey,
           transactionId: data.transactionId,
+          qrData: data.qrData,
         ));
       case Failure(:final error):
         emit(SendFailure(error.message));

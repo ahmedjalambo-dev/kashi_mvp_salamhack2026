@@ -104,7 +104,7 @@ void main() {
         when(
           () => repository.signAndStore(any(), any()),
         ).thenAnswer(
-          (_) async => const Success((transactionId: 'tx-uuid-1')),
+          (_) async => const Success((transactionId: 'tx-uuid-1', qrData: 'encoded-qr')),
         );
         return buildCubit();
       },
@@ -116,6 +116,7 @@ void main() {
           amount: 25.0,
           receiverPublicKey: 'recv-pub',
           transactionId: 'tx-uuid-1',
+          qrData: 'encoded-qr',
         ),
       ],
       verify: (_) => verify(

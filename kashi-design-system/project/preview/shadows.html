@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Shadows</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 28px; font-family: var(--font-en); color: var(--fg); background: var(--bg); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .box  { width: 100%; height: 70px; background: #fff; border-radius: 16px; }
+  .b1   { box-shadow: 0 1px 2px rgba(26,26,26,0.04); }
+  .b2   { box-shadow: 0 4px 12px rgba(26,26,26,0.06); }
+  .b3   { box-shadow: 0 12px 32px rgba(26,26,26,0.08); }
+  .b4   { box-shadow: 0 8px 24px rgba(45,95,63,0.18); background: #2D5F3F; }
+  .name { font-size: 12px; font-weight: 600; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="item"><div class="box b1"></div><div class="name">shadow-sm</div><div class="meta">list items</div></div>
+    <div class="item"><div class="box b2"></div><div class="name">shadow-md</div><div class="meta">cards</div></div>
+    <div class="item"><div class="box b3"></div><div class="name">shadow-lg</div><div class="meta">sheets / modals</div></div>
+    <div class="item"><div class="box b4"></div><div class="name">shadow-balance</div><div class="meta">wallet card only</div></div>
+  </div>
+</body></html>

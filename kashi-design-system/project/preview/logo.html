@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kashi — Logo</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body {
+    margin: 0; padding: 32px;
+    background: var(--bg);
+    font-family: var(--font-en);
+    color: var(--fg);
+    min-height: 100vh; box-sizing: border-box;
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 20px; max-width: 1100px; margin: 0 auto;
+  }
+  .card {
+    background: #FFF; border-radius: 20px; padding: 28px;
+    box-shadow: 0 1px 2px rgba(26,26,26,0.04), 0 4px 16px rgba(26,26,26,0.04);
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--fg-2);
+  }
+  .lockup { display: flex; align-items: center; gap: 14px; }
+  .word { font-family: var(--font-en); font-weight: 700; font-size: 30px; letter-spacing: -0.02em; color: var(--fg); }
+  .ar   { font-family: var(--font-ar); font-weight: 700; font-size: 28px; color: var(--kashi-olive); margin-bottom: -4px; }
+  .dot  { width: 5px; height: 5px; border-radius: 999px; background: var(--kashi-gold); }
+  .meta {
+    border-top: 1px solid var(--border);
+    padding-top: 14px; font-size: 12px; color: var(--fg-2); line-height: 1.5;
+  }
+  .swatch-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+</style>
+</head>
+<body>
+
+  <!--
+    The mark fuses two ideas at the core of Kashi:
+      1) Tatreez star — the 8-point cross-stitch motif central to
+         Palestinian embroidery. Geometric, identity-rich, ancestral.
+      2) QR finder-pattern corners — the visual signature of the
+         offline-pay flow. Three corners frame the star the same way
+         they frame a real QR code: scannable, signed, offline-safe.
+    The gold dot is the cryptographic seal — the moment a payment
+    signs itself before it leaves the device.
+  -->
+
+  <div style="text-align:center; margin-bottom: 28px; padding: 0 16px;">
+    <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-2);">Logo · Brand mark</div>
+    <div style="font-size: 18px; color: var(--fg); margin-top: 6px;">Tatreez star inside QR-finder corners — Palestinian heritage, ready to scan offline.</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── Primary lockup, on cream ─────────────────────────────── -->
+    <div class="card">
+      <div class="label">Primary lockup · light</div>
+      <div class="lockup">
+        <svg width="56" height="56" viewBox="0 0 64 64" aria-label="Kashi mark">
+          <rect width="64" height="64" rx="16" fill="#FAF8F5"/>
+          <!-- QR-style finder corners -->
+          <g fill="none" stroke="#2D5F3F" stroke-width="2.4">
+            <rect x="6"  y="6"  width="14" height="14" rx="3"/>
+            <rect x="44" y="6"  width="14" height="14" rx="3"/>
+            <rect x="6"  y="44" width="14" height="14" rx="3"/>
+          </g>
+          <g fill="#2D5F3F">
+            <rect x="10" y="10" width="6" height="6" rx="1"/>
+            <rect x="48" y="10" width="6" height="6" rx="1"/>
+            <rect x="10" y="48" width="6" height="6" rx="1"/>
+          </g>
+          <!-- Tatreez 8-point star (cross-stitch) -->
+          <g fill="#2D5F3F">
+            <rect x="30" y="22" width="4" height="4"/>
+            <rect x="30" y="38" width="4" height="4"/>
+            <rect x="22" y="30" width="4" height="4"/>
+            <rect x="38" y="30" width="4" height="4"/>
+            <rect x="26" y="26" width="4" height="4"/>
+            <rect x="34" y="26" width="4" height="4"/>
+            <rect x="26" y="34" width="4" height="4"/>
+            <rect x="34" y="34" width="4" height="4"/>
+            <rect x="30" y="30" width="4" height="4"/>
+          </g>
+          <!-- Gold seal -->
+          <circle cx="32" cy="32" r="1.6" fill="#D4A24C"/>
+        </svg>
+        <div class="word">Kashi</div>
+        <div class="dot"></div>
+        <div class="ar">كاشي</div>
+      </div>
+      <div class="meta">Tatreez 8-point star framed by three QR-finder corners. Gold seal pulses at the centre on payment-signing animations.</div>
+    </div>
+
+    <!-- ── On olive ─────────────────────────────────────────────── -->
+    <div class="card" style="background: #2D5F3F;">
+      <div class="label" style="color: rgba(250,248,245,0.55);">Reverse · on olive</div>
+      <div class="lockup">
+        <svg width="56" height="56" viewBox="0 0 64 64" aria-label="Kashi mark">
+          <rect width="64" height="64" rx="16" fill="#234B32"/>
+          <g fill="none" stroke="#FAF8F5" stroke-width="2.4" opacity="0.9">
+            <rect x="6"  y="6"  width="14" height="14" rx="3"/>
+            <rect x="44" y="6"  width="14" height="14" rx="3"/>
+            <rect x="6"  y="44" width="14" height="14" rx="3"/>
+          </g>
+          <g fill="#FAF8F5" opacity="0.9">
+            <rect x="10" y="10" width="6" height="6" rx="1"/>
+            <rect x="48" y="10" width="6" height="6" rx="1"/>
+            <rect x="10" y="48" width="6" height="6" rx="1"/>
+          </g>
+          <g fill="#FAF8F5">
+            <rect x="30" y="22" width="4" height="4"/>
+            <rect x="30" y="38" width="4" height="4"/>
+            <rect x="22" y="30" width="4" height="4"/>
+            <rect x="38" y="30" width="4" height="4"/>
+            <rect x="26" y="26" width="4" height="4"/>
+            <rect x="34" y="26" width="4" height="4"/>
+            <rect x="26" y="34" width="4" height="4"/>
+            <rect x="34" y="34" width="4" height="4"/>
+            <rect x="30" y="30" width="4" height="4"/>
+          </g>
+          <circle cx="32" cy="32" r="1.6" fill="#D4A24C"/>
+        </svg>
+        <div class="word" style="color: #FAF8F5;">Kashi</div>
+        <div class="dot"></div>
+        <div class="ar" style="color: #D4A24C;">كاشي</div>
+      </div>
+      <div class="meta" style="color: rgba(250,248,245,0.6); border-top: 1px solid rgba(255,255,255,0.12); padding-top: 14px;">For dark surfaces — splash screen, balance card, offline-pay QR header.</div>
+    </div>
+
+    <!-- ── Mark by itself, multiple sizes ───────────────────────── -->
+    <div class="card">
+      <div class="label">Mark · standalone</div>
+      <div class="swatch-row">
+        <!-- 32px (favicon scale) — simplified -->
+        <svg width="32" height="32" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="16" fill="#2D5F3F"/>
+          <g fill="#FAF8F5">
+            <rect x="8" y="8" width="14" height="14" rx="3"/>
+            <rect x="42" y="8" width="14" height="14" rx="3"/>
+            <rect x="8" y="42" width="14" height="14" rx="3"/>
+            <rect x="28" y="22" width="8" height="8"/>
+            <rect x="22" y="28" width="8" height="8"/>
+            <rect x="34" y="28" width="8" height="8"/>
+            <rect x="28" y="34" width="8" height="8"/>
+          </g>
+        </svg>
+        <!-- 56px -->
+        <svg width="56" height="56" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="16" fill="#2D5F3F"/>
+          <g fill="none" stroke="#FAF8F5" stroke-width="2.4">
+            <rect x="6" y="6" width="14" height="14" rx="3"/>
+            <rect x="44" y="6" width="14" height="14" rx="3"/>
+            <rect x="6" y="44" width="14" height="14" rx="3"/>
+          </g>
+          <g fill="#FAF8F5">
+            <rect x="10" y="10" width="6" height="6" rx="1"/>
+            <rect x="48" y="10" width="6" height="6" rx="1"/>
+            <rect x="10" y="48" width="6" height="6" rx="1"/>
+            <rect x="30" y="22" width="4" height="4"/>
+            <rect x="30" y="38" width="4" height="4"/>
+            <rect x="22" y="30" width="4" height="4"/>
+            <rect x="38" y="30" width="4" height="4"/>
+            <rect x="26" y="26" width="4" height="4"/>
+            <rect x="34" y="26" width="4" height="4"/>
+            <rect x="26" y="34" width="4" height="4"/>
+            <rect x="34" y="34" width="4" height="4"/>
+            <rect x="30" y="30" width="4" height="4"/>
+          </g>
+          <circle cx="32" cy="32" r="1.6" fill="#D4A24C"/>
+        </svg>
+        <!-- 96px -->
+        <svg width="96" height="96" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="16" fill="#2D5F3F"/>
+          <g fill="none" stroke="#FAF8F5" stroke-width="2.4">
+            <rect x="6" y="6" width="14" height="14" rx="3"/>
+            <rect x="44" y="6" width="14" height="14" rx="3"/>
+            <rect x="6" y="44" width="14" height="14" rx="3"/>
+          </g>
+          <g fill="#FAF8F5">
+            <rect x="10" y="10" width="6" height="6" rx="1"/>
+            <rect x="48" y="10" width="6" height="6" rx="1"/>
+            <rect x="10" y="48" width="6" height="6" rx="1"/>
+            <rect x="30" y="22" width="4" height="4"/>
+            <rect x="30" y="38" width="4" height="4"/>
+            <rect x="22" y="30" width="4" height="4"/>
+            <rect x="38" y="30" width="4" height="4"/>
+            <rect x="26" y="26" width="4" height="4"/>
+            <rect x="34" y="26" width="4" height="4"/>
+            <rect x="26" y="34" width="4" height="4"/>
+            <rect x="34" y="34" width="4" height="4"/>
+            <rect x="30" y="30" width="4" height="4"/>
+          </g>
+          <circle cx="32" cy="32" r="1.6" fill="#D4A24C"/>
+        </svg>
+      </div>
+      <div class="meta">At small sizes (favicon, 24–32px) drop the corner outlines and merge tatreez pixels into a chunky cross — keeps the silhouette legible.</div>
+    </div>
+
+    <!-- ── Wordmark + monogram ─────────────────────────────────── -->
+    <div class="card">
+      <div class="label">Wordmark · monogram</div>
+      <div style="display: flex; align-items: center; gap: 24px;">
+        <div class="word" style="font-size: 44px;">Kashi</div>
+        <div style="height: 32px; width: 1px; background: var(--border);"></div>
+        <div class="ar" style="font-size: 38px;">كاشي</div>
+        <div style="height: 32px; width: 1px; background: var(--border);"></div>
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="16" fill="#FAF8F5" stroke="#E8E5E0" stroke-width="1"/>
+          <text x="14" y="46" font-family="Inter, sans-serif" font-weight="700" font-size="36" fill="#2D5F3F" letter-spacing="-0.02em">ك</text>
+          <circle cx="46" cy="20" r="3.5" fill="#D4A24C"/>
+        </svg>
+      </div>
+      <div class="meta">Bilingual wordmark; Arabic monogram (ك) for circular profile pictures and app shortcuts.</div>
+    </div>
+
+    <!-- ── Don'ts ──────────────────────────────────────────────── -->
+    <div class="card" style="grid-column: span 2;">
+      <div class="label">Clear-space &amp; don'ts</div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 4px;">
+        <div>
+          <div style="position: relative; padding: 24px; background: var(--bg); border-radius: 12px;">
+            <div style="position: absolute; inset: 16px; border: 1px dashed var(--kashi-gold); border-radius: 8px; opacity: 0.7;"></div>
+            <svg width="48" height="48" viewBox="0 0 64 64" style="position: relative;">
+              <rect width="64" height="64" rx="16" fill="#2D5F3F"/>
+              <g fill="#FAF8F5"><rect x="8" y="8" width="14" height="14" rx="3"/><rect x="42" y="8" width="14" height="14" rx="3"/><rect x="8" y="42" width="14" height="14" rx="3"/><rect x="28" y="22" width="8" height="8"/><rect x="22" y="28" width="8" height="8"/><rect x="34" y="28" width="8" height="8"/><rect x="28" y="34" width="8" height="8"/></g>
+            </svg>
+          </div>
+          <div style="font-size: 11px; color: var(--fg-2); margin-top: 8px; text-align: center;">Clear space = ½ mark height</div>
+        </div>
+        <div>
+          <div style="padding: 24px; background: var(--bg); border-radius: 12px; display: grid; place-items: center; position: relative;">
+            <svg width="48" height="48" viewBox="0 0 64 64">
+              <rect width="64" height="64" rx="16" fill="#E91E63"/>
+              <g fill="#FFFF00"><rect x="8" y="8" width="14" height="14" rx="3"/><rect x="42" y="8" width="14" height="14" rx="3"/><rect x="8" y="42" width="14" height="14" rx="3"/><rect x="28" y="22" width="8" height="8"/><rect x="22" y="28" width="8" height="8"/><rect x="34" y="28" width="8" height="8"/><rect x="28" y="34" width="8" height="8"/></g>
+            </svg>
+            <div style="position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 999px; background: #E53935; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px;">✕</div>
+          </div>
+          <div style="font-size: 11px; color: var(--fg-2); margin-top: 8px; text-align: center;">Don't recolour the mark</div>
+        </div>
+        <div>
+          <div style="padding: 24px; background: var(--bg); border-radius: 12px; display: grid; place-items: center; position: relative;">
+            <svg width="80" height="36" viewBox="0 0 64 64" preserveAspectRatio="none">
+              <rect width="64" height="64" rx="16" fill="#2D5F3F"/>
+              <g fill="#FAF8F5"><rect x="8" y="8" width="14" height="14" rx="3"/><rect x="42" y="8" width="14" height="14" rx="3"/><rect x="8" y="42" width="14" height="14" rx="3"/><rect x="28" y="22" width="8" height="8"/><rect x="22" y="28" width="8" height="8"/><rect x="34" y="28" width="8" height="8"/><rect x="28" y="34" width="8" height="8"/></g>
+            </svg>
+            <div style="position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 999px; background: #E53935; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px;">✕</div>
+          </div>
+          <div style="font-size: 11px; color: var(--fg-2); margin-top: 8px; text-align: center;">Don't distort proportions</div>
+        </div>
+        <div>
+          <div style="padding: 24px; background: var(--bg); border-radius: 12px; display: grid; place-items: center; position: relative;">
+            <svg width="48" height="48" viewBox="0 0 64 64" style="filter: drop-shadow(0 6px 8px rgba(0,0,0,0.6));">
+              <rect width="64" height="64" rx="16" fill="#2D5F3F"/>
+              <g fill="#FAF8F5"><rect x="8" y="8" width="14" height="14" rx="3"/><rect x="42" y="8" width="14" height="14" rx="3"/><rect x="8" y="42" width="14" height="14" rx="3"/><rect x="28" y="22" width="8" height="8"/><rect x="22" y="28" width="8" height="8"/><rect x="34" y="28" width="8" height="8"/><rect x="28" y="34" width="8" height="8"/></g>
+            </svg>
+            <div style="position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 999px; background: #E53935; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px;">✕</div>
+          </div>
+          <div style="font-size: 11px; color: var(--fg-2); margin-top: 8px; text-align: center;">Don't add drop-shadows</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Type — Numerals & Mono</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); color: var(--fg); }
+  .blk { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .lab { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stack { font-feature-settings: "tnum" 1, "lnum" 1; font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 600; }
+  .stack span { display: block; }
+  .iban { font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.04em; color: var(--fg); }
+</style>
+</head>
+<body>
+  <div class="blk">
+    <div class="lab">Tabular figures — balances align</div>
+    <div class="stack">
+      <span>₪    250.00</span>
+      <span>₪  1,840.50</span>
+      <span>₪    12.00</span>
+    </div>
+  </div>
+  <div class="blk">
+    <div class="lab">IBAN — JetBrains Mono, 4-char groups</div>
+    <div class="iban">PS00 KASH 0000 0123 4567 89</div>
+  </div>
+</body></html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Type — Scale</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); color: var(--fg); }
+  .row { display: grid; grid-template-columns: 90px 1fr 80px; align-items: baseline; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border: 0; }
+  .label { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); }
+  .meta  { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); text-align: right; }
+</style>
+</head>
+<body>
+  <div class="row"><span class="label">H1</span><span style="font-size:32px;font-weight:700;letter-spacing:-0.01em">Send to anyone</span><span class="meta">32 / 700</span></div>
+  <div class="row"><span class="label">H2</span><span style="font-size:24px;font-weight:600">Wallet balance</span><span class="meta">24 / 600</span></div>
+  <div class="row"><span class="label">H3</span><span style="font-size:20px;font-weight:600">Recent activity</span><span class="meta">20 / 600</span></div>
+  <div class="row"><span class="label">Body</span><span style="font-size:16px;font-weight:400">You're offline — payments still work.</span><span class="meta">16 / 400</span></div>
+  <div class="row"><span class="label">Caption</span><span style="font-size:14px;font-weight:500;color:var(--fg-2)">Updated just now</span><span class="meta">14 / 500</span></div>
+</body></html>

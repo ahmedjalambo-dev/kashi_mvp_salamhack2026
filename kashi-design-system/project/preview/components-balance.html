@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Wallet card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); }
+  .balance {
+    background: linear-gradient(135deg, #2D5F3F 0%, #234B32 100%);
+    border-radius: 24px;
+    padding: 24px;
+    color: #FAF8F5;
+    box-shadow: 0 8px 24px rgba(45,95,63,0.18);
+    position: relative;
+    overflow: hidden;
+  }
+  .balance::after {
+    content: ""; position: absolute; right: -40px; top: -40px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(212,162,76,0.18), transparent 70%);
+  }
+  .lab { font-size: 13px; font-weight: 500; opacity: 0.75; letter-spacing: 0.04em; text-transform: uppercase; }
+  .amt { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .iban { font-family: var(--font-mono); font-size: 13px; opacity: 0.8; margin-top: 14px; letter-spacing: 0.04em; }
+  .row { display: flex; align-items: center; justify-content: space-between; }
+  .chip { display: inline-flex; gap: 6px; align-items: center; background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="balance">
+    <div class="row">
+      <div class="lab">Wallet balance</div>
+      <span class="chip">●  Online</span>
+    </div>
+    <div class="amt">₪ 1,250.00</div>
+    <div class="iban">PS00 KASH 0000 0123 4567 89</div>
+  </div>
+</body></html>

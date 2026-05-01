@@ -12,6 +12,9 @@ class AppConstants {
   static const envSupabaseUrl = 'SUPABASE_URL';
   static const envSupabaseAnonKey = 'SUPABASE_ANON_KEY';
 
+  static const pendingRequestsTable = 'pending_requests';
+  static const incomingPendingTable = 'incoming_pending';
+
   static const walletsTable = 'wallets';
   static const transactionsTable = 'transactions';
   static const syncRpc = 'sync_transaction';

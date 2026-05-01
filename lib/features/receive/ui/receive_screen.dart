@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/components/amount_input.dart';
 import '../../../core/components/loading_view.dart';
 import '../../../core/components/qr_view.dart';
+import '../../send/ui/components/scanner_view.dart';
 import '../state/receive_cubit.dart';
 import '../state/receive_state.dart';
 
@@ -19,16 +20,27 @@ class ReceiveScreen extends StatelessWidget {
           final cubit = context.read<ReceiveCubit>();
           return switch (state) {
             ReceiveRequestInput() => _RequestInputView(error: null),
-            ReceiveFailure(:final message) =>
-              _RequestInputView(error: message),
-            ReceiveBuildingRequest() =>
-              const LoadingView(message: 'Creating request…'),
-            ReceiveShowingRequest(:final qrData, :final request) =>
+            ReceiveFailure(:final message) => _RequestInputView(error: message),
+            ReceiveBuildingRequest() => const LoadingView(
+              message: 'Creating request…',
+            ),
+            ReceiveShowingRequest(
+              :final qrData,
+              :final request,
+              :final errorMessage,
+            ) =>
               _ShowRequestView(
                 qrData: qrData,
                 amount: request.amount,
+                errorMessage: errorMessage,
                 cubit: cubit,
               ),
+            ReceiveScanningConfirmation() => ScannerView(
+              onDetect: cubit.onConfirmationScanned,
+            ),
+            ReceiveConfirmingPayment() => const LoadingView(
+              message: 'Verifying confirmation…',
+            ),
             ReceiveDone() => _DoneView(cubit: cubit),
           };
         },
@@ -74,11 +86,13 @@ class _ShowRequestView extends StatelessWidget {
     required this.qrData,
     required this.amount,
     required this.cubit,
+    this.errorMessage,
   });
 
   final String qrData;
   final double amount;
   final ReceiveCubit cubit;
+  final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -99,22 +113,36 @@ class _ShowRequestView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    QrView(
-                      data: qrData,
-                      label: 'Show this code to the sender',
-                    ),
+                    QrView(data: qrData, label: 'Show this code to the sender'),
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        errorMessage!,
+                        style: const TextStyle(color: Colors.redAccent),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: cubit.markFulfilled,
+          // const SizedBox(height: 12),
+          // FilledButton(
+          //   onPressed: cubit.markFulfilled,
+          //   style: const ButtonStyle(
+          //     minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
+          //   ),
+          //   child: const Text('Mark fulfilled'),
+          // ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: cubit.openConfirmationScanner,
             style: const ButtonStyle(
               minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
             ),
-            child: const Text('Mark fulfilled'),
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text("Scan sender's confirmation"),
           ),
           const SizedBox(height: 8),
           OutlinedButton(
@@ -145,13 +173,13 @@ class _DoneView extends StatelessWidget {
           const Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
           const SizedBox(height: 12),
           Text(
-            'Request closed',
+            'Payment received',
             style: Theme.of(context).textTheme.headlineSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
-            'The payment will appear in your history once both devices are online.',
+            'The transaction is queued for sync. It will confirm once either device is online.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),

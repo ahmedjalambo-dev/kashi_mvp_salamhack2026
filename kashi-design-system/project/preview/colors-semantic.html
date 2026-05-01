@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Semantic colors</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; font-family: var(--font-en); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .item { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .top  { padding: 16px 14px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+  .dot  { width: 12px; height: 12px; border-radius: 999px; }
+  .bot  { padding: 8px 14px; background: var(--surface); font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="item">
+      <div class="top" style="background:#E8F5E9;color:#2E7D32"><span class="dot" style="background:#4CAF50"></span>Success</div>
+      <div class="bot">#4CAF50</div>
+    </div>
+    <div class="item">
+      <div class="top" style="background:#FFF4E5;color:#B86E00"><span class="dot" style="background:#FF9800"></span>Warning</div>
+      <div class="bot">#FF9800</div>
+    </div>
+    <div class="item">
+      <div class="top" style="background:#FCEAEA;color:#B71C1C"><span class="dot" style="background:#E53935"></span>Error</div>
+      <div class="bot">#E53935</div>
+    </div>
+    <div class="item">
+      <div class="top" style="background:#EAF2EC;color:#2D5F3F"><span class="dot" style="background:#2D5F3F"></span>Info</div>
+      <div class="bot">#2D5F3F</div>
+    </div>
+  </div>
+</body></html>

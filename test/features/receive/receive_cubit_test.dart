@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kashi_mvp_salamhack2026/core/network/error_model.dart';
 import 'package:kashi_mvp_salamhack2026/core/network/result.dart';
 import 'package:kashi_mvp_salamhack2026/features/receive/data/repositories/receive_repository.dart';
 import 'package:kashi_mvp_salamhack2026/features/receive/state/receive_cubit.dart';
@@ -9,9 +10,14 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockReceiveRepository extends Mock implements ReceiveRepository {}
 
+class _FakePaymentRequest extends Fake implements PaymentRequest {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() {
+    registerFallbackValue(_FakePaymentRequest());
+  });
   const myPublicKey = 'my-pub-key';
 
   final now = DateTime.now().toUtc();
@@ -91,7 +97,12 @@ void main() {
   group('markFulfilled', () {
     blocTest<ReceiveCubit, ReceiveState>(
       'emits [ReceiveDone] from ReceiveShowingRequest',
-      build: buildCubit,
+      build: () {
+        when(
+          () => repository.markFulfilledLocally(any()),
+        ).thenAnswer((_) async => const Success(null));
+        return buildCubit();
+      },
       seed: () => ReceiveShowingRequest(qrData: qrData, request: request),
       act: (c) => c.markFulfilled(),
       expect: () => [const ReceiveDone()],
@@ -125,6 +136,92 @@ void main() {
       seed: () => const ReceiveFailure('some error'),
       act: (c) => c.restart(),
       expect: () => [const ReceiveRequestInput()],
+    );
+  });
+
+  group('openConfirmationScanner', () {
+    blocTest<ReceiveCubit, ReceiveState>(
+      'transitions to ReceiveScanningConfirmation from ReceiveShowingRequest',
+      build: buildCubit,
+      seed: () => ReceiveShowingRequest(qrData: qrData, request: request),
+      act: (c) => c.openConfirmationScanner(),
+      expect: () => [ReceiveScanningConfirmation(request, qrData)],
+    );
+
+    blocTest<ReceiveCubit, ReceiveState>(
+      'is a no-op when not in ReceiveShowingRequest',
+      build: buildCubit,
+      seed: () => const ReceiveRequestInput(),
+      act: (c) => c.openConfirmationScanner(),
+      expect: () => [],
+    );
+  });
+
+  group('onConfirmationScanned', () {
+    blocTest<ReceiveCubit, ReceiveState>(
+      'happy path emits [ReceiveConfirmingPayment, ReceiveDone]',
+      build: () {
+        when(
+          () => repository.confirmEnvelope(any(), any()),
+        ).thenAnswer((_) async => Success(
+          SignedEnvelope(
+            payload: PaymentPayload(
+              id: request.id,
+              senderPublicKey: 'sender-key',
+              receiverPublicKey: myPublicKey,
+              amount: request.amount,
+              nonce: request.nonce,
+              clientCreatedAt: request.clientCreatedAt,
+              expiresAt: request.expiresAt,
+            ),
+            signature: 'sig',
+          ),
+        ));
+        return buildCubit();
+      },
+      seed: () => ReceiveScanningConfirmation(request, qrData),
+      act: (c) => c.onConfirmationScanned('scanned-qr'),
+      expect: () => [
+        ReceiveConfirmingPayment(request, qrData),
+        const ReceiveDone(),
+      ],
+      verify: (_) => verify(
+        () => repository.confirmEnvelope('scanned-qr', request),
+      ).called(1),
+    );
+
+    blocTest<ReceiveCubit, ReceiveState>(
+      'failure restores ReceiveShowingRequest with errorMessage',
+      build: () {
+        when(
+          () => repository.confirmEnvelope(any(), any()),
+        ).thenAnswer(
+          (_) async => const Failure(
+            ErrorModel(message: 'Signature verification failed', code: 'SIGNATURE_INVALID'),
+          ),
+        );
+        return buildCubit();
+      },
+      seed: () => ReceiveScanningConfirmation(request, qrData),
+      act: (c) => c.onConfirmationScanned('bad-qr'),
+      expect: () => [
+        ReceiveConfirmingPayment(request, qrData),
+        ReceiveShowingRequest(
+          qrData: qrData,
+          request: request,
+          errorMessage: 'Signature verification failed',
+        ),
+      ],
+    );
+
+    blocTest<ReceiveCubit, ReceiveState>(
+      'is a no-op when not in ReceiveScanningConfirmation',
+      build: buildCubit,
+      seed: () => const ReceiveRequestInput(),
+      act: (c) => c.onConfirmationScanned('qr'),
+      expect: () => [],
+      verify: (_) =>
+          verifyNever(() => repository.confirmEnvelope(any(), any())),
     );
   });
 }

@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Motion</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; font-family: var(--font-en); color: var(--fg); }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .cell { padding: 14px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); }
+  .name { font-size: 13px; font-weight: 600; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); margin-top: 2px; }
+  .curve { width: 100%; height: 36px; margin-top: 8px; }
+  .curve path { fill: none; stroke: var(--kashi-olive); stroke-width: 2; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="cell">
+      <div class="name">Standard</div>
+      <div class="meta">cubic-bezier(.4,0,.2,1) · 150–250ms</div>
+      <svg class="curve" viewBox="0 0 100 30"><path d="M0,30 C40,30 60,0 100,0"/></svg>
+    </div>
+    <div class="cell">
+      <div class="name">Expo-out (ceremony)</div>
+      <div class="meta">cubic-bezier(.16,1,.3,1) · 600ms</div>
+      <svg class="curve" viewBox="0 0 100 30"><path d="M0,30 C20,5 30,0 100,0"/></svg>
+    </div>
+    <div class="cell">
+      <div class="name">Press</div>
+      <div class="meta">scale .98 · opacity .9 · 100ms</div>
+      <svg class="curve" viewBox="0 0 100 30"><path d="M0,30 L50,5 L100,0"/></svg>
+    </div>
+  </div>
+</body></html>
