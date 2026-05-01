@@ -8,27 +8,24 @@ sealed class ReceiveState extends Equatable {
   List<Object?> get props => [];
 }
 
-class ReceiveScanning extends ReceiveState {
-  const ReceiveScanning();
+class ReceiveRequestInput extends ReceiveState {
+  const ReceiveRequestInput();
 }
 
-class ReceiveVerifying extends ReceiveState {
-  const ReceiveVerifying();
+class ReceiveBuildingRequest extends ReceiveState {
+  const ReceiveBuildingRequest();
 }
 
-class ReceiveConfirming extends ReceiveState {
-  final SignedEnvelope envelope;
-  const ReceiveConfirming(this.envelope);
-  PaymentPayload get payload => envelope.payload;
+class ReceiveShowingRequest extends ReceiveState {
+  final String qrData;
+  final PaymentRequest request;
+  const ReceiveShowingRequest({required this.qrData, required this.request});
   @override
-  List<Object?> get props => [envelope];
+  List<Object?> get props => [qrData, request];
 }
 
-class ReceiveSuccess extends ReceiveState {
-  final PaymentPayload payload;
-  const ReceiveSuccess(this.payload);
-  @override
-  List<Object?> get props => [payload];
+class ReceiveDone extends ReceiveState {
+  const ReceiveDone();
 }
 
 class ReceiveFailure extends ReceiveState {

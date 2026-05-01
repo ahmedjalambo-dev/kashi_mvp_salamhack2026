@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-class QrDisplay extends StatelessWidget {
-  const QrDisplay({super.key, required this.data, required this.amount});
+class QrView extends StatelessWidget {
+  const QrView({super.key, required this.data, required this.label});
   final String data;
-  final double amount;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'Pay ${amount.toStringAsFixed(2)}',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -30,7 +26,7 @@ class QrDisplay extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        const Text('Show this code to the receiver'),
+        Text(label, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }

@@ -1,7 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
-import '../../send/data/models/payment_payload.dart';
 import '../data/repositories/receive_repository.dart';
 import 'receive_state.dart';
 
@@ -10,41 +10,43 @@ class ReceiveCubit extends Cubit<ReceiveState> {
     required ReceiveRepository repository,
     required this.myPublicKey,
   }) : _repository = repository,
-       super(const ReceiveScanning());
+       super(const ReceiveRequestInput());
 
   final ReceiveRepository _repository;
   final String myPublicKey;
-  bool _busy = false;
 
-  Future<void> onScan(String raw) async {
-    if (_busy || state is! ReceiveScanning) return;
-    _busy = true;
-    emit(const ReceiveVerifying());
-    final result = await _repository.validateScan(raw, myPublicKey);
+  final amountController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  Future<void> buildRequest() async {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    emit(const ReceiveBuildingRequest());
+    final result = await _repository.buildRequest(
+      amountController.text,
+      myPublicKey,
+    );
+    if (isClosed) return;
     switch (result) {
       case Success(:final data):
-        emit(ReceiveConfirming(data));
-      case Failure(:final error):
-        emit(ReceiveFailure(error.message));
-    }
-    _busy = false;
-  }
-
-  Future<void> confirmTransaction(PaymentPayload payload) async {
-    final s = state;
-    if (s is! ReceiveConfirming) return;
-    assert(s.payload == payload);
-    emit(const ReceiveVerifying());
-    final result = await _repository.acceptValidated(s.envelope);
-    switch (result) {
-      case Success(:final data):
-        emit(ReceiveSuccess(data.payload));
+        emit(ReceiveShowingRequest(qrData: data.qrData, request: data.request));
       case Failure(:final error):
         emit(ReceiveFailure(error.message));
     }
   }
 
-  void cancelTransaction() => emit(const ReceiveScanning());
+  void markFulfilled() {
+    if (state is! ReceiveShowingRequest) return;
+    emit(const ReceiveDone());
+  }
 
-  void rescan() => emit(const ReceiveScanning());
+  void restart() {
+    amountController.clear();
+    emit(const ReceiveRequestInput());
+  }
+
+  @override
+  Future<void> close() {
+    amountController.dispose();
+    return super.close();
+  }
 }

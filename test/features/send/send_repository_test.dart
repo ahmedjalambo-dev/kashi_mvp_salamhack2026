@@ -5,6 +5,7 @@ import 'package:kashi_mvp_salamhack2026/core/crypto/ecdsa_signer.dart';
 import 'package:kashi_mvp_salamhack2026/core/crypto/payload_codec.dart';
 import 'package:kashi_mvp_salamhack2026/core/network/error_handler.dart';
 import 'package:kashi_mvp_salamhack2026/core/network/result.dart';
+import 'package:kashi_mvp_salamhack2026/core/services/qr_codec.dart';
 import 'package:kashi_mvp_salamhack2026/core/services/secure_storage.dart';
 import 'package:kashi_mvp_salamhack2026/features/receive/data/services/pending_tx_local_service.dart';
 import 'package:kashi_mvp_salamhack2026/features/send/data/models/payment_payload.dart';
@@ -13,7 +14,6 @@ import 'package:kashi_mvp_salamhack2026/features/send/data/services/payment_sign
 import 'package:kashi_mvp_salamhack2026/features/wallet/data/models/wallet_model.dart';
 import 'package:kashi_mvp_salamhack2026/features/wallet/data/services/wallet_local_service.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:uuid/uuid.dart';
 
 class _MockSecureStorage extends Mock implements SecureStorage {}
 
@@ -24,13 +24,11 @@ class _MockPendingTxLocalService extends Mock
 
 class _FakeSignedEnvelope extends Fake implements SignedEnvelope {}
 
-// Convenience alias for the record type returned by buildSignedQr.
-typedef _QrResult = ({String qrData, String transactionId});
-
 void main() {
   setUpAll(() {
     registerFallbackValue(_FakeSignedEnvelope());
   });
+
   late EcdsaSigner signer;
   late EcdsaKeyPair pair;
   late PaymentSigner paymentSigner;
@@ -41,6 +39,24 @@ void main() {
 
   const senderPub = 'sender-pub';
 
+  // A valid request QR produced by QrCodec.encodeRequest.
+  String makeValidQr({
+    String? receiverPublicKey,
+    double amount = 12.5,
+    Duration offset = Duration.zero,
+  }) {
+    final now = DateTime.now().toUtc().add(offset);
+    final request = PaymentRequest(
+      id: 'test-id',
+      receiverPublicKey: receiverPublicKey ?? 'receiver-pub',
+      amount: amount,
+      nonce: 'nonce',
+      clientCreatedAt: now,
+      expiresAt: now.add(const Duration(hours: 1)),
+    );
+    return const QrCodec().encodeRequest(request);
+  }
+
   setUp(() {
     signer = EcdsaSigner();
     pair = signer.generateKeyPair();
@@ -49,13 +65,9 @@ void main() {
     walletLocal = _MockWalletLocalService();
     pendingTx = _MockPendingTxLocalService();
 
-    // Default stubs: private key present, balance cached at 100, no reservations.
-    when(
-      () => storage.read(any()),
-    ).thenAnswer((_) async => pair.privateKeyBase64);
+    when(() => storage.read(any())).thenAnswer((_) async => pair.privateKeyBase64);
     when(() => walletLocal.loadCached(any())).thenAnswer(
-      (_) async =>
-          WalletModel(id: 'cache', publicKey: senderPub, balance: 100.0),
+      (_) async => WalletModel(id: 'cache', publicKey: senderPub, balance: 100.0),
     );
     when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 0);
     when(() => pendingTx.insert(any())).thenAnswer((_) async {});
@@ -63,189 +75,108 @@ void main() {
     repo = SendRepository(
       paymentSigner: paymentSigner,
       secureStorage: storage,
-      uuid: const Uuid(),
+      qrCodec: const QrCodec(),
       errors: const ErrorHandler(),
       walletLocal: walletLocal,
       pendingTx: pendingTx,
     );
   });
 
-  test('produces a verifiable signed envelope', () async {
-    final result = await repo.buildSignedQr(
-      senderPublicKey: pair.publicKeyBase64,
-      receiverPublicKey: 'receiver-pub',
-      amount: 12.5,
-    );
-    expect(result, isA<Success<_QrResult>>());
-    final qr = (result as Success<_QrResult>).data.qrData;
-    final envelope = SignedEnvelope.fromJson(
-      (jsonDecode(utf8.decode(base64Decode(qr))) as Map)
-          .cast<String, dynamic>(),
-    );
-    expect(envelope.payload.amount, 12.5);
-    expect(paymentSigner.verify(envelope.payload, envelope.signature), isTrue);
-  });
+  group('validateScannedRequest', () {
+    test('returns Success(request) for a valid QR', () async {
+      final qr = makeValidQr();
+      final result = await repo.validateScannedRequest(qr, senderPub);
+      expect(result, isA<Success<PaymentRequest>>());
+      final req = (result as Success<PaymentRequest>).data;
+      expect(req.amount, 12.5);
+      expect(req.receiverPublicKey, 'receiver-pub');
+    });
 
-  test('returns the transaction id alongside the QR data', () async {
-    final result = await repo.buildSignedQr(
-      senderPublicKey: pair.publicKeyBase64,
-      receiverPublicKey: 'receiver-pub',
-      amount: 5,
-    );
-    final data = (result as Success<_QrResult>).data;
-    expect(data.transactionId, isNotEmpty);
-    // The id should match what is embedded in the QR payload.
-    final envelope = SignedEnvelope.fromJson(
-      (jsonDecode(utf8.decode(base64Decode(data.qrData))) as Map)
-          .cast<String, dynamic>(),
-    );
-    expect(data.transactionId, envelope.payload.id);
-  });
-
-  test('inserts an optimistic pending row on success', () async {
-    await repo.buildSignedQr(
-      senderPublicKey: pair.publicKeyBase64,
-      receiverPublicKey: 'receiver-pub',
-      amount: 10,
-    );
-    verify(() => pendingTx.insert(any())).called(1);
-  });
-
-  test('rejects non-positive amount', () async {
-    final result = await repo.buildSignedQr(
-      senderPublicKey: pair.publicKeyBase64,
-      receiverPublicKey: 'r',
-      amount: 0,
-    );
-    expect(result, isA<Failure<_QrResult>>());
-    verifyNever(() => pendingTx.insert(any()));
-  });
-
-  test('rejects when no cached balance exists', () async {
-    when(() => walletLocal.loadCached(any())).thenAnswer((_) async => null);
-    final result = await repo.buildSignedQr(
-      senderPublicKey: senderPub,
-      receiverPublicKey: 'r',
-      amount: 10,
-    );
-    final failure = result as Failure<_QrResult>;
-    expect(failure.error.code, 'NO_CACHE');
-    verifyNever(() => pendingTx.insert(any()));
-  });
-
-  test('rejects overdraft — amount exceeds available balance', () async {
-    // balance=100, reserved=60 → available=40; sending 50 is an overdraft.
-    when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 60);
-    final result = await repo.buildSignedQr(
-      senderPublicKey: senderPub,
-      receiverPublicKey: 'r',
-      amount: 50,
-    );
-    final failure = result as Failure<_QrResult>;
-    expect(failure.error.code, 'INSUFFICIENT_FUNDS');
-    verifyNever(() => pendingTx.insert(any()));
-  });
-
-  test('allows amount exactly equal to available balance', () async {
-    // balance=100, reserved=40 → available=60; sending exactly 60 is ok.
-    when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 40);
-    final result = await repo.buildSignedQr(
-      senderPublicKey: pair.publicKeyBase64,
-      receiverPublicKey: 'r',
-      amount: 60,
-    );
-    expect(result, isA<Success<_QrResult>>());
-    verify(() => pendingTx.insert(any())).called(1);
-  });
-
-  test('fails when private key is missing', () async {
-    when(() => storage.read(any())).thenAnswer((_) async => null);
-    final result = await repo.buildSignedQr(
-      senderPublicKey: pair.publicKeyBase64,
-      receiverPublicKey: 'r',
-      amount: 1,
-    );
-    expect(result, isA<Failure<_QrResult>>());
-    verifyNever(() => pendingTx.insert(any()));
-  });
-
-  group('validateAmount', () {
-    test('returns Success(null) for amount within available balance', () async {
-      final result = await repo.validateAmount(
-        senderPublicKey: senderPub,
-        amount: 50,
-      );
-      expect(result, isA<Success<void>>());
+    test('returns Failure(MALFORMED) for garbage input', () async {
+      final result = await repo.validateScannedRequest('not-valid-base64!!!', senderPub);
+      expect((result as Failure).error.code, 'MALFORMED');
       verifyNever(() => pendingTx.insert(any()));
     });
 
-    test('returns Failure(AMOUNT) for amount <= 0', () async {
-      final result = await repo.validateAmount(
-        senderPublicKey: senderPub,
-        amount: 0,
-      );
-      expect((result as Failure).error.code, 'AMOUNT');
-      verifyNever(() => pendingTx.insert(any()));
+    test('returns Failure(MALFORMED) for non-request type QR', () async {
+      // Encode a raw JSON that has type != "request"
+      final raw = base64Encode(utf8.encode('{"type":"signed","id":"x"}'));
+      final result = await repo.validateScannedRequest(raw, senderPub);
+      expect((result as Failure).error.code, 'MALFORMED');
     });
 
-    test('returns Failure(NO_CACHE) when loadCached returns null', () async {
+    test('returns Failure(SELF_PAY) when receiver == sender', () async {
+      final qr = makeValidQr(receiverPublicKey: senderPub);
+      final result = await repo.validateScannedRequest(qr, senderPub);
+      expect((result as Failure).error.code, 'SELF_PAY');
+    });
+
+    test('returns Failure(EXPIRED) for an expired request', () async {
+      final qr = makeValidQr(offset: const Duration(hours: -2));
+      final result = await repo.validateScannedRequest(qr, senderPub);
+      expect((result as Failure).error.code, 'EXPIRED');
+    });
+
+    test('returns Failure(NO_CACHE) when no cached balance', () async {
       when(() => walletLocal.loadCached(any())).thenAnswer((_) async => null);
-      final result = await repo.validateAmount(
-        senderPublicKey: senderPub,
-        amount: 10,
-      );
+      final qr = makeValidQr();
+      final result = await repo.validateScannedRequest(qr, senderPub);
       expect((result as Failure).error.code, 'NO_CACHE');
-      verifyNever(() => pendingTx.insert(any()));
     });
 
-    test('returns Failure(INSUFFICIENT_FUNDS) when amount > balance − reserved',
-        () async {
-      when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 60);
-      final result = await repo.validateAmount(
-        senderPublicKey: senderPub,
-        amount: 50, // balance=100, reserved=60 → available=40
-      );
+    test('returns Failure(INSUFFICIENT_FUNDS) when amount exceeds available', () async {
+      when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 90);
+      final qr = makeValidQr(amount: 20); // balance=100, reserved=90 → available=10
+      final result = await repo.validateScannedRequest(qr, senderPub);
       expect((result as Failure).error.code, 'INSUFFICIENT_FUNDS');
-      verifyNever(() => pendingTx.insert(any()));
     });
 
-    test('does not call pendingTx.insert under any path', () async {
-      await repo.validateAmount(senderPublicKey: senderPub, amount: 10);
-      verifyNever(() => pendingTx.insert(any()));
+    test('allows amount exactly equal to available balance', () async {
+      when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 40);
+      final qr = makeValidQr(amount: 60); // available=60
+      final result = await repo.validateScannedRequest(qr, senderPub);
+      expect(result, isA<Success<PaymentRequest>>());
     });
   });
 
-  group('cancelPendingTransaction', () {
-    test('returns Success when markVoidedLocally affects 1 row', () async {
-      when(() => pendingTx.markVoidedLocally(any())).thenAnswer((_) async => 1);
+  group('signAndStore', () {
+    late PaymentRequest request;
 
-      final result = await repo.cancelPendingTransaction('tx-id', 10.0);
-
-      expect(result, isA<Success<int>>());
-      expect((result as Success<int>).data, 1);
-      verify(() => pendingTx.markVoidedLocally('tx-id')).called(1);
+    setUp(() {
+      final now = DateTime.now().toUtc();
+      request = PaymentRequest(
+        id: 'test-id',
+        receiverPublicKey: 'receiver-pub',
+        amount: 12.5,
+        nonce: 'nonce',
+        clientCreatedAt: now,
+        expiresAt: now.add(const Duration(hours: 1)),
+      );
     });
 
-    test(
-      'returns Failure(ALREADY_SYNCED) when markVoidedLocally affects 0 rows',
-      () async {
-        when(() => pendingTx.markVoidedLocally(any())).thenAnswer((_) async => 0);
+    test('inserts a verifiable signed envelope and returns transactionId', () async {
+      final result = await repo.signAndStore(request, pair.publicKeyBase64);
+      expect(result, isA<Success<({String transactionId})>>());
+      expect(
+        (result as Success<({String transactionId})>).data.transactionId,
+        'test-id',
+      );
+      verify(() => pendingTx.insert(any())).called(1);
+    });
 
-        final result = await repo.cancelPendingTransaction('tx-id', 10.0);
+    test('returns Failure(NO_KEY) when private key is missing', () async {
+      when(() => storage.read(any())).thenAnswer((_) async => null);
+      final result = await repo.signAndStore(request, 'sender-pub');
+      expect((result as Failure).error.code, 'NO_KEY');
+      verifyNever(() => pendingTx.insert(any()));
+    });
 
-        expect(result, isA<Failure<int>>());
-        expect((result as Failure<int>).error.code, 'ALREADY_SYNCED');
-      },
-    );
-
-    test('returns Failure when service throws', () async {
-      when(
-        () => pendingTx.markVoidedLocally(any()),
-      ).thenThrow(Exception('db error'));
-
-      final result = await repo.cancelPendingTransaction('tx-id', 10.0);
-
-      expect(result, isA<Failure<int>>());
+    test('signed payload is verifiable by PaymentSigner', () async {
+      await repo.signAndStore(request, pair.publicKeyBase64);
+      // Capture what was inserted
+      final captured = verify(() => pendingTx.insert(captureAny())).captured;
+      final envelope = captured.first as SignedEnvelope;
+      expect(paymentSigner.verify(envelope.payload, envelope.signature), isTrue);
     });
   });
 }
