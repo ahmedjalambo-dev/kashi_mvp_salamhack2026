@@ -17,18 +17,23 @@ class SendCubit extends Cubit<SendState> {
     if (_busy || state is! SendScanning) return;
     _busy = true;
     emit(const SendVerifying());
-    final result = await _repository.validateScannedRequest(raw, senderPublicKey);
+    final result = await _repository.validateScannedRequest(
+      raw,
+      senderPublicKey,
+    );
     if (isClosed) {
       _busy = false;
       return;
     }
     switch (result) {
       case Success(:final data):
-        emit(SendConfirming(
-          amount: data.amount,
-          receiverPublicKey: data.receiverPublicKey,
-          request: data,
-        ));
+        emit(
+          SendConfirming(
+            amount: data.amount,
+            receiverPublicKey: data.receiverPublicKey,
+            request: data,
+          ),
+        );
       case Failure(:final error):
         emit(SendFailure(error.message));
     }
@@ -43,12 +48,14 @@ class SendCubit extends Cubit<SendState> {
     if (isClosed) return;
     switch (result) {
       case Success(:final data):
-        emit(SendSuccess(
-          amount: s.amount,
-          receiverPublicKey: s.receiverPublicKey,
-          transactionId: data.transactionId,
-          qrData: data.qrData,
-        ));
+        emit(
+          SendSuccess(
+            amount: s.amount,
+            receiverPublicKey: s.receiverPublicKey,
+            transactionId: data.transactionId,
+            qrData: data.qrData,
+          ),
+        );
       case Failure(:final error):
         emit(SendFailure(error.message));
     }

@@ -39,10 +39,8 @@ void main() {
     repository = _MockSendRepository();
   });
 
-  SendCubit buildCubit() => SendCubit(
-    repository: repository,
-    senderPublicKey: 'sender-pub',
-  );
+  SendCubit buildCubit() =>
+      SendCubit(repository: repository, senderPublicKey: 'sender-pub');
 
   group('onScan', () {
     blocTest<SendCubit, SendState>(
@@ -70,11 +68,12 @@ void main() {
     blocTest<SendCubit, SendState>(
       'invalid request emits [SendVerifying, SendFailure]',
       build: () {
-        when(
-          () => repository.validateScannedRequest(any(), any()),
-        ).thenAnswer(
+        when(() => repository.validateScannedRequest(any(), any())).thenAnswer(
           (_) async => const Failure(
-            ErrorModel(message: 'Not a Kashi payment request', code: 'MALFORMED'),
+            ErrorModel(
+              message: 'Not a Kashi payment request',
+              code: 'MALFORMED',
+            ),
           ),
         );
         return buildCubit();
@@ -101,10 +100,9 @@ void main() {
     blocTest<SendCubit, SendState>(
       'emits [SendVerifying, SendSuccess] from SendConfirming on success',
       build: () {
-        when(
-          () => repository.signAndStore(any(), any()),
-        ).thenAnswer(
-          (_) async => const Success((transactionId: 'tx-uuid-1', qrData: 'encoded-qr')),
+        when(() => repository.signAndStore(any(), any())).thenAnswer(
+          (_) async =>
+              const Success((transactionId: 'tx-uuid-1', qrData: 'encoded-qr')),
         );
         return buildCubit();
       },
@@ -127,9 +125,7 @@ void main() {
     blocTest<SendCubit, SendState>(
       'emits [SendVerifying, SendFailure] when signAndStore returns Failure',
       build: () {
-        when(
-          () => repository.signAndStore(any(), any()),
-        ).thenAnswer(
+        when(() => repository.signAndStore(any(), any())).thenAnswer(
           (_) async => const Failure(
             ErrorModel(message: 'Private key missing', code: 'NO_KEY'),
           ),
@@ -150,8 +146,7 @@ void main() {
       seed: () => const SendScanning(),
       act: (c) => c.confirmAndSign(),
       expect: () => [],
-      verify: (_) =>
-          verifyNever(() => repository.signAndStore(any(), any())),
+      verify: (_) => verifyNever(() => repository.signAndStore(any(), any())),
     );
   });
 

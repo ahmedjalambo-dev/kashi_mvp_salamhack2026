@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScannerView extends StatefulWidget {
-  const ScannerView({
-    super.key,
-    required this.onDetect,
-    this.paused = false,
-  });
+  const ScannerView({super.key, required this.onDetect, this.paused = false});
   final void Function(String raw) onDetect;
   final bool paused;
 

@@ -67,7 +67,9 @@ void main() {
     // Default stubs for the incoming_pending drain loop.
     when(() => local.pendingIncoming()).thenAnswer((_) async => []);
     when(() => local.markIncomingSynced(any())).thenAnswer((_) async {});
-    when(() => local.markIncomingRejected(any(), any())).thenAnswer((_) async {});
+    when(
+      () => local.markIncomingRejected(any(), any()),
+    ).thenAnswer((_) async {});
   });
 
   test('23505 unique-violation is treated as successful sync', () async {
@@ -222,9 +224,7 @@ void main() {
         clientCreatedAt: any(named: 'clientCreatedAt'),
         expiresAt: any(named: 'expiresAt'),
       ),
-    ).thenThrow(
-      PostgrestException(code: '409', message: 'conflict'),
-    );
+    ).thenThrow(PostgrestException(code: '409', message: 'conflict'));
 
     final result = await repo.drainPending();
 

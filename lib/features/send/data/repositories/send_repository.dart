@@ -71,10 +71,7 @@ class SendRepository {
       final age = now.difference(request.clientCreatedAt);
       if (age.inMinutes > _maxAgeMinutes || now.isAfter(request.expiresAt)) {
         return const Failure(
-          ErrorModel(
-            message: 'Payment request has expired',
-            code: 'EXPIRED',
-          ),
+          ErrorModel(message: 'Payment request has expired', code: 'EXPIRED'),
         );
       }
 

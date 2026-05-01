@@ -51,10 +51,7 @@ void main() {
     await service.insert(envelope);
 
     verify(
-      () => mockDatabase.insert(
-        AppConstants.incomingPendingTable,
-        any(),
-      ),
+      () => mockDatabase.insert(AppConstants.incomingPendingTable, any()),
     ).called(1);
   });
 
@@ -137,7 +134,11 @@ void main() {
         columns: any(named: 'columns'),
         where: any(named: 'where'),
       ),
-    ).thenAnswer((_) async => [{'n': 3}]);
+    ).thenAnswer(
+      (_) async => [
+        {'n': 3},
+      ],
+    );
 
     final count = await service.pendingCount();
     expect(count, 3);

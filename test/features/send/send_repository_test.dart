@@ -65,9 +65,12 @@ void main() {
     walletLocal = _MockWalletLocalService();
     pendingTx = _MockPendingTxLocalService();
 
-    when(() => storage.read(any())).thenAnswer((_) async => pair.privateKeyBase64);
+    when(
+      () => storage.read(any()),
+    ).thenAnswer((_) async => pair.privateKeyBase64);
     when(() => walletLocal.loadCached(any())).thenAnswer(
-      (_) async => WalletModel(id: 'cache', publicKey: senderPub, balance: 100.0),
+      (_) async =>
+          WalletModel(id: 'cache', publicKey: senderPub, balance: 100.0),
     );
     when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 0);
     when(() => pendingTx.insert(any())).thenAnswer((_) async {});
@@ -93,7 +96,10 @@ void main() {
     });
 
     test('returns Failure(MALFORMED) for garbage input', () async {
-      final result = await repo.validateScannedRequest('not-valid-base64!!!', senderPub);
+      final result = await repo.validateScannedRequest(
+        'not-valid-base64!!!',
+        senderPub,
+      );
       expect((result as Failure).error.code, 'MALFORMED');
       verifyNever(() => pendingTx.insert(any()));
     });
@@ -124,15 +130,24 @@ void main() {
       expect((result as Failure).error.code, 'NO_CACHE');
     });
 
-    test('returns Failure(INSUFFICIENT_FUNDS) when amount exceeds available', () async {
-      when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 90);
-      final qr = makeValidQr(amount: 20); // balance=100, reserved=90 → available=10
-      final result = await repo.validateScannedRequest(qr, senderPub);
-      expect((result as Failure).error.code, 'INSUFFICIENT_FUNDS');
-    });
+    test(
+      'returns Failure(INSUFFICIENT_FUNDS) when amount exceeds available',
+      () async {
+        when(
+          () => pendingTx.pendingOutgoingSum(any()),
+        ).thenAnswer((_) async => 90);
+        final qr = makeValidQr(
+          amount: 20,
+        ); // balance=100, reserved=90 → available=10
+        final result = await repo.validateScannedRequest(qr, senderPub);
+        expect((result as Failure).error.code, 'INSUFFICIENT_FUNDS');
+      },
+    );
 
     test('allows amount exactly equal to available balance', () async {
-      when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 40);
+      when(
+        () => pendingTx.pendingOutgoingSum(any()),
+      ).thenAnswer((_) async => 40);
       final qr = makeValidQr(amount: 60); // available=60
       final result = await repo.validateScannedRequest(qr, senderPub);
       expect(result, isA<Success<PaymentRequest>>());
@@ -154,15 +169,20 @@ void main() {
       );
     });
 
-    test('inserts a verifiable signed envelope and returns transactionId', () async {
-      final result = await repo.signAndStore(request, pair.publicKeyBase64);
-      expect(result, isA<Success<({String qrData, String transactionId})>>());
-      expect(
-        (result as Success<({String qrData, String transactionId})>).data.transactionId,
-        'test-id',
-      );
-      verify(() => pendingTx.insert(any())).called(1);
-    });
+    test(
+      'inserts a verifiable signed envelope and returns transactionId',
+      () async {
+        final result = await repo.signAndStore(request, pair.publicKeyBase64);
+        expect(result, isA<Success<({String qrData, String transactionId})>>());
+        expect(
+          (result as Success<({String qrData, String transactionId})>)
+              .data
+              .transactionId,
+          'test-id',
+        );
+        verify(() => pendingTx.insert(any())).called(1);
+      },
+    );
 
     test('returns Failure(NO_KEY) when private key is missing', () async {
       when(() => storage.read(any())).thenAnswer((_) async => null);
@@ -176,7 +196,10 @@ void main() {
       // Capture what was inserted
       final captured = verify(() => pendingTx.insert(captureAny())).captured;
       final envelope = captured.first as SignedEnvelope;
-      expect(paymentSigner.verify(envelope.payload, envelope.signature), isTrue);
+      expect(
+        paymentSigner.verify(envelope.payload, envelope.signature),
+        isTrue,
+      );
     });
   });
 }

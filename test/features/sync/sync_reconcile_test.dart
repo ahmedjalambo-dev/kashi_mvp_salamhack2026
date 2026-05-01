@@ -24,13 +24,13 @@ class _MockWalletRemoteService extends Mock implements WalletRemoteService {}
 class _MockWalletLocalService extends Mock implements WalletLocalService {}
 
 TransactionModel _tx(String id) => TransactionModel(
-      id: id,
-      senderPublicKey: 'sender',
-      receiverPublicKey: 'receiver',
-      amount: 25.0,
-      status: TxStatus.confirmed,
-      clientCreatedAt: DateTime.now(),
-    );
+  id: id,
+  senderPublicKey: 'sender',
+  receiverPublicKey: 'receiver',
+  amount: 25.0,
+  status: TxStatus.confirmed,
+  clientCreatedAt: DateTime.now(),
+);
 
 void main() {
   late _MockSyncRemoteService syncRemote;
@@ -67,48 +67,57 @@ void main() {
   });
 
   group('pullAndReconcile', () {
-    test('flips voided_locally row to synced when server has the same id', () async {
-      when(() => historyRemote.fetchFor(pubKey))
-          .thenAnswer((_) async => [_tx('tx-1'), _tx('tx-2')]);
-      when(() => syncLocal.queryByStatus('voided_locally')).thenAnswer(
-        (_) async => [
-          {'id': 'tx-1', 'amount': 25.0},
-        ],
-      );
-      when(() => syncLocal.markSyncedFromVoided('tx-1'))
-          .thenAnswer((_) async {});
+    test(
+      'flips voided_locally row to synced when server has the same id',
+      () async {
+        when(
+          () => historyRemote.fetchFor(pubKey),
+        ).thenAnswer((_) async => [_tx('tx-1'), _tx('tx-2')]);
+        when(() => syncLocal.queryByStatus('voided_locally')).thenAnswer(
+          (_) async => [
+            {'id': 'tx-1', 'amount': 25.0},
+          ],
+        );
+        when(
+          () => syncLocal.markSyncedFromVoided('tx-1'),
+        ).thenAnswer((_) async {});
 
-      final result = await repo.pullAndReconcile(pubKey);
+        final result = await repo.pullAndReconcile(pubKey);
 
-      expect(result, isA<Success<ReconcileOutcome>>());
-      final outcome = (result as Success<ReconcileOutcome>).data;
-      expect(outcome.reconciled, 1);
-      expect(outcome.serverBalance, serverBalance);
-      verify(() => syncLocal.markSyncedFromVoided('tx-1')).called(1);
-    });
+        expect(result, isA<Success<ReconcileOutcome>>());
+        final outcome = (result as Success<ReconcileOutcome>).data;
+        expect(outcome.reconciled, 1);
+        expect(outcome.serverBalance, serverBalance);
+        verify(() => syncLocal.markSyncedFromVoided('tx-1')).called(1);
+      },
+    );
 
-    test('leaves voided_locally row alone when server does NOT have the id', () async {
-      when(() => historyRemote.fetchFor(pubKey))
-          .thenAnswer((_) async => [_tx('tx-other')]);
-      when(() => syncLocal.queryByStatus('voided_locally')).thenAnswer(
-        (_) async => [
-          {'id': 'tx-cancelled', 'amount': 10.0},
-        ],
-      );
+    test(
+      'leaves voided_locally row alone when server does NOT have the id',
+      () async {
+        when(
+          () => historyRemote.fetchFor(pubKey),
+        ).thenAnswer((_) async => [_tx('tx-other')]);
+        when(() => syncLocal.queryByStatus('voided_locally')).thenAnswer(
+          (_) async => [
+            {'id': 'tx-cancelled', 'amount': 10.0},
+          ],
+        );
 
-      final result = await repo.pullAndReconcile(pubKey);
+        final result = await repo.pullAndReconcile(pubKey);
 
-      expect(result, isA<Success<ReconcileOutcome>>());
-      final outcome = (result as Success<ReconcileOutcome>).data;
-      expect(outcome.reconciled, 0);
-      verifyNever(() => syncLocal.markSyncedFromVoided(any()));
-    });
+        expect(result, isA<Success<ReconcileOutcome>>());
+        final outcome = (result as Success<ReconcileOutcome>).data;
+        expect(outcome.reconciled, 0);
+        verifyNever(() => syncLocal.markSyncedFromVoided(any()));
+      },
+    );
 
     test('overrides wallet_cache balance even when reconciled == 0', () async {
-      when(() => historyRemote.fetchFor(pubKey))
-          .thenAnswer((_) async => []);
-      when(() => syncLocal.queryByStatus('voided_locally'))
-          .thenAnswer((_) async => []);
+      when(() => historyRemote.fetchFor(pubKey)).thenAnswer((_) async => []);
+      when(
+        () => syncLocal.queryByStatus('voided_locally'),
+      ).thenAnswer((_) async => []);
 
       final result = await repo.pullAndReconcile(pubKey);
 
@@ -119,8 +128,9 @@ void main() {
     });
 
     test('returns Failure(OFFLINE) on SocketException', () async {
-      when(() => historyRemote.fetchFor(pubKey))
-          .thenThrow(const SocketException('no network'));
+      when(
+        () => historyRemote.fetchFor(pubKey),
+      ).thenThrow(const SocketException('no network'));
 
       final result = await repo.pullAndReconcile(pubKey);
 

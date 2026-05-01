@@ -12,7 +12,8 @@ import 'package:uuid/uuid.dart';
 
 class _MockPendingRequests extends Mock implements PendingRequestLocalService {}
 
-class _MockIncomingPending extends Mock implements IncomingPendingLocalService {}
+class _MockIncomingPending extends Mock
+    implements IncomingPendingLocalService {}
 
 class _MockPaymentSigner extends Mock implements PaymentSigner {}
 
@@ -51,7 +52,10 @@ void main() {
     clientCreatedAt: testNow,
     expiresAt: testNow.add(const Duration(hours: 1)),
   );
-  final testEnvelope = SignedEnvelope(payload: testPayload, signature: 'valid-sig');
+  final testEnvelope = SignedEnvelope(
+    payload: testPayload,
+    signature: 'valid-sig',
+  );
 
   setUp(() {
     pendingRequests = _MockPendingRequests();
@@ -85,7 +89,10 @@ void main() {
   });
 
   test('malformed QR returns Failure with MALFORMED_QR code', () async {
-    final result = await repo.confirmEnvelope('not-valid-base64!!!', testRequest);
+    final result = await repo.confirmEnvelope(
+      'not-valid-base64!!!',
+      testRequest,
+    );
     expect(result, isA<Failure<SignedEnvelope>>());
     final err = (result as Failure<SignedEnvelope>).error;
     expect(err.code, 'MALFORMED_QR');
@@ -138,10 +145,7 @@ void main() {
     final qr = encodeEnvelope(testEnvelope);
     final result = await repo.confirmEnvelope(qr, testRequest);
     expect(result, isA<Failure<SignedEnvelope>>());
-    expect(
-      (result as Failure<SignedEnvelope>).error.code,
-      'SIGNATURE_INVALID',
-    );
+    expect((result as Failure<SignedEnvelope>).error.code, 'SIGNATURE_INVALID');
     verifyNever(() => incomingPending.insert(any()));
   });
 }

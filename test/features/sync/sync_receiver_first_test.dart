@@ -61,7 +61,9 @@ void main() {
     when(() => local.pending()).thenAnswer((_) async => []);
     when(() => local.pendingIncoming()).thenAnswer((_) async => [_incomingRow]);
     when(() => local.markIncomingSynced(any())).thenAnswer((_) async {});
-    when(() => local.markIncomingRejected(any(), any())).thenAnswer((_) async {});
+    when(
+      () => local.markIncomingRejected(any(), any()),
+    ).thenAnswer((_) async {});
   });
 
   test(
@@ -93,33 +95,30 @@ void main() {
     },
   );
 
-  test(
-    'incoming duplicate (23505) is treated as synced',
-    () async {
-      when(
-        () => remote.push(
-          id: any(named: 'id'),
-          senderPublicKey: any(named: 'senderPublicKey'),
-          receiverPublicKey: any(named: 'receiverPublicKey'),
-          amount: any(named: 'amount'),
-          nonce: any(named: 'nonce'),
-          signature: any(named: 'signature'),
-          signedPayload: any(named: 'signedPayload'),
-          clientCreatedAt: any(named: 'clientCreatedAt'),
-          expiresAt: any(named: 'expiresAt'),
-        ),
-      ).thenThrow(
-        PostgrestException(code: '23505', message: 'duplicate key value'),
-      );
+  test('incoming duplicate (23505) is treated as synced', () async {
+    when(
+      () => remote.push(
+        id: any(named: 'id'),
+        senderPublicKey: any(named: 'senderPublicKey'),
+        receiverPublicKey: any(named: 'receiverPublicKey'),
+        amount: any(named: 'amount'),
+        nonce: any(named: 'nonce'),
+        signature: any(named: 'signature'),
+        signedPayload: any(named: 'signedPayload'),
+        clientCreatedAt: any(named: 'clientCreatedAt'),
+        expiresAt: any(named: 'expiresAt'),
+      ),
+    ).thenThrow(
+      PostgrestException(code: '23505', message: 'duplicate key value'),
+    );
 
-      final result = await repo.drainPending();
+    final result = await repo.drainPending();
 
-      final outcome = (result as Success<SyncOutcome>).data;
-      expect(outcome.synced, 1);
-      expect(outcome.failed, 0);
-      verify(() => local.markIncomingSynced('rx-uuid-1')).called(1);
-    },
-  );
+    final outcome = (result as Success<SyncOutcome>).data;
+    expect(outcome.synced, 1);
+    expect(outcome.failed, 0);
+    verify(() => local.markIncomingSynced('rx-uuid-1')).called(1);
+  });
 
   test(
     'SocketException during incoming drain stops loop and returns current counts',

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,9 +14,12 @@ class AmountInput extends StatelessWidget {
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
       ],
+      style: const TextStyle(
+        fontFeatures: [FontFeature.tabularFigures()],
+      ),
       decoration: const InputDecoration(
         labelText: 'Amount',
-        border: OutlineInputBorder(),
+        prefixText: '₪ ',
       ),
       validator: (value) {
         final v = double.tryParse((value ?? '').trim());

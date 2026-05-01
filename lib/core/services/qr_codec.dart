@@ -14,7 +14,9 @@ class QrCodec {
     try {
       final decoded = utf8.decode(base64Decode(raw));
       final json = jsonDecode(decoded);
-      if (json is! Map) throw const FormatException('QR payload is not an object');
+      if (json is! Map) {
+        throw const FormatException('QR payload is not an object');
+      }
       map = json.cast<String, dynamic>();
     } catch (e) {
       if (e is FormatException) rethrow;
@@ -44,7 +46,9 @@ class QrCodec {
     try {
       final decoded = utf8.decode(base64Decode(raw));
       final json = jsonDecode(decoded);
-      if (json is! Map) throw const FormatException('QR payload is not an object');
+      if (json is! Map) {
+        throw const FormatException('QR payload is not an object');
+      }
       map = json.cast<String, dynamic>();
     } catch (e) {
       if (e is FormatException) rethrow;

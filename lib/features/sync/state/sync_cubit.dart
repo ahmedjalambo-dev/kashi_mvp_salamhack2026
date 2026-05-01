@@ -45,8 +45,9 @@ class SyncCubit extends Cubit<SyncState> {
           var reconciled = 0;
           try {
             final publicKey = await _walletRepository.ensureKeyPair();
-            final reconcileResult =
-                await _repository.pullAndReconcile(publicKey);
+            final reconcileResult = await _repository.pullAndReconcile(
+              publicKey,
+            );
             if (reconcileResult case Success(:final data)) {
               reconciled = data.reconciled;
             }
@@ -55,11 +56,13 @@ class SyncCubit extends Cubit<SyncState> {
             // the cubit from settling into SyncIdle.
           }
           if (!isClosed) {
-            emit(SyncIdle(
-              synced: data.synced,
-              failed: data.failed,
-              reconciled: reconciled,
-            ));
+            emit(
+              SyncIdle(
+                synced: data.synced,
+                failed: data.failed,
+                reconciled: reconciled,
+              ),
+            );
           }
         case Failure(:final error):
           emit(SyncFailure(error.message));

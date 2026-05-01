@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/components/error_view.dart';
 import '../../../core/components/loading_view.dart';
@@ -136,7 +137,7 @@ class _WalletReadyView extends StatelessWidget {
                       Routes.send,
                       arguments: publicKey,
                     ),
-                    icon: const Icon(Icons.qr_code),
+                    icon: const Icon(LucideIcons.scanLine),
                     label: const Text('Send'),
                   ),
                 ),
@@ -148,7 +149,7 @@ class _WalletReadyView extends StatelessWidget {
                       Routes.receive,
                       arguments: publicKey,
                     ),
-                    icon: const Icon(Icons.qr_code_scanner),
+                    icon: const Icon(LucideIcons.qrCode),
                     label: const Text('Receive'),
                   ),
                 ),

@@ -61,9 +61,7 @@ class PendingRequestLocalService {
     _notify();
   }
 
-  Future<List<Map<String, Object?>>> queryAwaitingFor(
-    String publicKey,
-  ) async {
+  Future<List<Map<String, Object?>>> queryAwaitingFor(String publicKey) async {
     final db = await _db.database;
     return db.query(
       AppConstants.pendingRequestsTable,

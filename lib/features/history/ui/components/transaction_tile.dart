@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../data/models/transaction_model.dart';
 
@@ -32,9 +34,10 @@ class TransactionTile extends StatelessWidget {
         isSent ? theme.colorScheme.error : Colors.green.shade700,
     };
     final icon = switch (tx.status) {
-      TxStatus.rejected => Icons.error_outline,
-      TxStatus.pending => Icons.schedule,
-      TxStatus.confirmed => isSent ? Icons.arrow_upward : Icons.arrow_downward,
+      TxStatus.rejected => LucideIcons.circleAlert,
+      TxStatus.pending => LucideIcons.clock,
+      TxStatus.confirmed =>
+        isSent ? LucideIcons.arrowUpRight : LucideIcons.arrowDownLeft,
     };
     final subtitle = _paymentSubtitle(tx, myPublicKey);
 
@@ -45,15 +48,18 @@ class TransactionTile extends StatelessWidget {
       ),
       title: Text(
         '${isSent ? 'Sent' : 'Received'} '
-        '${tx.amount.toStringAsFixed(2)}',
-        style: theme.textTheme.titleSmall,
+        '₪ ${tx.amount.toStringAsFixed(2)}',
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
       ),
       subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: Text(
-        '$sign${tx.amount.toStringAsFixed(2)}',
+        '$sign ₪ ${tx.amount.toStringAsFixed(2)}',
         style: theme.textTheme.titleSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.bold,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -71,11 +77,13 @@ class TransactionTile extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: 0.12),
-        child: Icon(Icons.hourglass_top_rounded, color: color, size: 20),
+        child: Icon(LucideIcons.hourglass, color: color, size: 20),
       ),
       title: Text(
-        'Awaiting payment of ${tx.amount.toStringAsFixed(2)}',
-        style: theme.textTheme.titleSmall,
+        'Awaiting payment of ₪ ${tx.amount.toStringAsFixed(2)}',
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +106,7 @@ class TransactionTile extends StatelessWidget {
       ),
       trailing: expired && onDismiss != null
           ? IconButton(
-              icon: const Icon(Icons.close),
+              icon: const Icon(LucideIcons.x),
               tooltip: 'Dismiss',
               onPressed: onDismiss,
             )

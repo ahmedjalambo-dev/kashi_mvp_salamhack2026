@@ -1,5 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/components/loading_view.dart';
 import '../../../core/components/qr_view.dart';
@@ -43,10 +45,18 @@ class SendScreen extends StatelessWidget {
             final cubit = context.read<SendCubit>();
             return switch (state) {
               SendScanning() => ScannerView(onDetect: cubit.onScan),
-              SendVerifying() => const LoadingView(message: 'Verifying request…'),
-              SendConfirming() =>
-                ScannerView(onDetect: cubit.onScan, paused: true),
-              SendSuccess(:final amount, :final receiverPublicKey, :final qrData) =>
+              SendVerifying() => const LoadingView(
+                message: 'Verifying request…',
+              ),
+              SendConfirming() => ScannerView(
+                onDetect: cubit.onScan,
+                paused: true,
+              ),
+              SendSuccess(
+                :final amount,
+                :final receiverPublicKey,
+                :final qrData,
+              ) =>
                 _SuccessView(
                   amount: amount,
                   receiverPublicKey: receiverPublicKey,
@@ -93,9 +103,10 @@ class _ConfirmSendSheet extends StatelessWidget {
             Text('You are about to send', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             Text(
-              amount.toStringAsFixed(2),
+              '₪ ${amount.toStringAsFixed(2)}',
               style: theme.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
             const SizedBox(height: 16),
@@ -113,10 +124,7 @@ class _ConfirmSendSheet extends StatelessWidget {
               child: const Text('Confirm & Send'),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: onCancel,
-              child: const Text('Cancel'),
-            ),
+            OutlinedButton(onPressed: onCancel, child: const Text('Cancel')),
           ],
         ),
       ),
@@ -146,12 +154,13 @@ class _SuccessView extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+          Icon(LucideIcons.circleCheck, size: 64, color: Colors.green),
           const SizedBox(height: 12),
           Text(
-            amount.toStringAsFixed(2),
+            '₪ ${amount.toStringAsFixed(2)}',
             style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.bold,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
             textAlign: TextAlign.center,
           ),
@@ -161,18 +170,9 @@ class _SuccessView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          QrView(
-            data: qrData,
-            label: 'Confirmation QR — receiver scans this',
-          ),
+          QrView(data: qrData, label: 'Confirmation QR — receiver scans this'),
           const SizedBox(height: 32),
-          FilledButton(
-            onPressed: onDone,
-            style: const ButtonStyle(
-              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-            ),
-            child: const Text('Done'),
-          ),
+          FilledButton(onPressed: onDone, child: const Text('Done')),
         ],
       ),
     );
@@ -191,7 +191,11 @@ class _FailureView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+          Icon(
+            LucideIcons.circleAlert,
+            size: 64,
+            color: Colors.redAccent,
+          ),
           const SizedBox(height: 12),
           Text(
             'Cannot process',
@@ -200,13 +204,7 @@ class _FailureView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 32),
-          FilledButton(
-            onPressed: onRescan,
-            style: const ButtonStyle(
-              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-            ),
-            child: const Text('Scan again'),
-          ),
+          FilledButton(onPressed: onRescan, child: const Text('Scan again')),
         ],
       ),
     );

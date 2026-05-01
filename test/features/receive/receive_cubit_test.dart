@@ -37,10 +37,8 @@ void main() {
     repository = _MockReceiveRepository();
   });
 
-  ReceiveCubit buildCubit() => ReceiveCubit(
-    repository: repository,
-    myPublicKey: myPublicKey,
-  );
+  ReceiveCubit buildCubit() =>
+      ReceiveCubit(repository: repository, myPublicKey: myPublicKey);
 
   group('initial state', () {
     test('starts at ReceiveRequestInput', () {
@@ -54,18 +52,16 @@ void main() {
       build: () {
         when(
           () => repository.buildRequest(any(), any()),
-        ).thenAnswer(
-          (_) async => Success((request: request, qrData: qrData)),
-        );
+        ).thenAnswer((_) async => Success((request: request, qrData: qrData)));
         return buildCubit();
       },
       act: (c) {
         c.amountController.text = '25.00';
         // formKey.currentState is null without a widget tree — buildRequest
         // returns early. We stub at the repository layer and test directly.
-        return repository
-            .buildRequest('25.00', myPublicKey)
-            .then((result) async {
+        return repository.buildRequest('25.00', myPublicKey).then((
+          result,
+        ) async {
           // Bypass the form guard by calling the repository directly in
           // verify; the cubit guard prevents emission without a widget tree.
           // Test the state machine by seeding and calling the cubit's internal
@@ -80,17 +76,14 @@ void main() {
       build: () {
         when(
           () => repository.buildRequest(any(), any()),
-        ).thenAnswer(
-          (_) async => Success((request: request, qrData: qrData)),
-        );
+        ).thenAnswer((_) async => Success((request: request, qrData: qrData)));
         return buildCubit();
       },
       // No widget tree → formKey.currentState == null → guard returns early.
       // Verify the repository is not called (guard fires first).
       act: (c) => c.buildRequest(),
       expect: () => [],
-      verify: (_) =>
-          verifyNever(() => repository.buildRequest(any(), any())),
+      verify: (_) => verifyNever(() => repository.buildRequest(any(), any())),
     );
   });
 
@@ -161,22 +154,22 @@ void main() {
     blocTest<ReceiveCubit, ReceiveState>(
       'happy path emits [ReceiveConfirmingPayment, ReceiveDone]',
       build: () {
-        when(
-          () => repository.confirmEnvelope(any(), any()),
-        ).thenAnswer((_) async => Success(
-          SignedEnvelope(
-            payload: PaymentPayload(
-              id: request.id,
-              senderPublicKey: 'sender-key',
-              receiverPublicKey: myPublicKey,
-              amount: request.amount,
-              nonce: request.nonce,
-              clientCreatedAt: request.clientCreatedAt,
-              expiresAt: request.expiresAt,
+        when(() => repository.confirmEnvelope(any(), any())).thenAnswer(
+          (_) async => Success(
+            SignedEnvelope(
+              payload: PaymentPayload(
+                id: request.id,
+                senderPublicKey: 'sender-key',
+                receiverPublicKey: myPublicKey,
+                amount: request.amount,
+                nonce: request.nonce,
+                clientCreatedAt: request.clientCreatedAt,
+                expiresAt: request.expiresAt,
+              ),
+              signature: 'sig',
             ),
-            signature: 'sig',
           ),
-        ));
+        );
         return buildCubit();
       },
       seed: () => ReceiveScanningConfirmation(request, qrData),
@@ -193,11 +186,12 @@ void main() {
     blocTest<ReceiveCubit, ReceiveState>(
       'failure restores ReceiveShowingRequest with errorMessage',
       build: () {
-        when(
-          () => repository.confirmEnvelope(any(), any()),
-        ).thenAnswer(
+        when(() => repository.confirmEnvelope(any(), any())).thenAnswer(
           (_) async => const Failure(
-            ErrorModel(message: 'Signature verification failed', code: 'SIGNATURE_INVALID'),
+            ErrorModel(
+              message: 'Signature verification failed',
+              code: 'SIGNATURE_INVALID',
+            ),
           ),
         );
         return buildCubit();

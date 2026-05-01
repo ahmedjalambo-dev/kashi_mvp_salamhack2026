@@ -38,16 +38,15 @@ class HistoryLocalService {
     final reqRows = await _requests.queryAwaitingFor(publicKey);
     final incomingRows = await _incomingPending.queryAllForKey(publicKey);
 
-    final txModels =
-        txRows.map(TransactionModel.fromPendingRow).toList(growable: true);
-    final reqModels =
-        reqRows
-            .map(TransactionModel.fromPendingRequestRow)
-            .toList(growable: true);
-    final incomingModels =
-        incomingRows
-            .map(TransactionModel.fromIncomingPendingRow)
-            .toList(growable: true);
+    final txModels = txRows
+        .map(TransactionModel.fromPendingRow)
+        .toList(growable: true);
+    final reqModels = reqRows
+        .map(TransactionModel.fromPendingRequestRow)
+        .toList(growable: true);
+    final incomingModels = incomingRows
+        .map(TransactionModel.fromIncomingPendingRow)
+        .toList(growable: true);
 
     final merged = [...txModels, ...reqModels, ...incomingModels];
     merged.sort((a, b) => b.clientCreatedAt.compareTo(a.clientCreatedAt));

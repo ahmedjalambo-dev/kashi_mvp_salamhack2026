@@ -64,7 +64,8 @@ class _Ready extends StatelessWidget {
             (tx) => TransactionTile(
               tx: tx,
               myPublicKey: publicKey,
-              onDismiss: tx.kind == TxKind.request && tx.isExpired(DateTime.now())
+              onDismiss:
+                  tx.kind == TxKind.request && tx.isExpired(DateTime.now())
                   ? () => context.read<HistoryCubit>().dismissRequest(tx.id)
                   : null,
             ),

@@ -27,31 +27,35 @@ void main() {
     connectivity = _MockConnectivityService();
     walletRepository = _MockWalletRepository();
 
-    when(() => connectivity.onStatusChange)
-        .thenAnswer((_) => const Stream.empty());
-    when(() => repository.requeueDuplicateRejections())
-        .thenAnswer((_) async {});
+    when(
+      () => connectivity.onStatusChange,
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      () => repository.requeueDuplicateRejections(),
+    ).thenAnswer((_) async {});
     when(() => repository.pendingCount()).thenAnswer((_) async => 0);
-    when(() => walletRepository.ensureKeyPair())
-        .thenAnswer((_) async => 'my-pub-key');
-    when(() => repository.pullAndReconcile(any())).thenAnswer(
-      (_) async => const Success(ReconcileOutcome(0, null)),
-    );
+    when(
+      () => walletRepository.ensureKeyPair(),
+    ).thenAnswer((_) async => 'my-pub-key');
+    when(
+      () => repository.pullAndReconcile(any()),
+    ).thenAnswer((_) async => const Success(ReconcileOutcome(0, null)));
   });
 
   SyncCubit buildCubit() => SyncCubit(
-        repository: repository,
-        connectivity: connectivity,
-        walletRepository: walletRepository,
-      );
+    repository: repository,
+    connectivity: connectivity,
+    walletRepository: walletRepository,
+  );
 
   group('SyncCubit.runOnce', () {
     blocTest<SyncCubit, SyncState>(
       'emits [SyncRunning, SyncIdle(synced:1)] on successful drain',
       build: buildCubit,
       setUp: () {
-        when(() => repository.drainPending())
-            .thenAnswer((_) async => const Success(SyncOutcome(1, 0)));
+        when(
+          () => repository.drainPending(),
+        ).thenAnswer((_) async => const Success(SyncOutcome(1, 0)));
       },
       act: (c) => c.runOnce(),
       expect: () => [
@@ -64,8 +68,9 @@ void main() {
       'emits [SyncRunning, SyncIdle(failed:1)] when one row permanently fails',
       build: buildCubit,
       setUp: () {
-        when(() => repository.drainPending())
-            .thenAnswer((_) async => const Success(SyncOutcome(0, 1)));
+        when(
+          () => repository.drainPending(),
+        ).thenAnswer((_) async => const Success(SyncOutcome(0, 1)));
       },
       act: (c) => c.runOnce(),
       expect: () => [
@@ -83,19 +88,16 @@ void main() {
         );
       },
       act: (c) => c.runOnce(),
-      expect: () => [
-        const SyncRunning(),
-        const SyncFailure('network error'),
-      ],
+      expect: () => [const SyncRunning(), const SyncFailure('network error')],
     );
 
     blocTest<SyncCubit, SyncState>(
       '_running resets after Failure so a second runOnce emits states again',
       build: buildCubit,
       setUp: () {
-        when(() => repository.drainPending()).thenAnswer(
-          (_) async => const Failure(ErrorModel(message: 'err')),
-        );
+        when(
+          () => repository.drainPending(),
+        ).thenAnswer((_) async => const Failure(ErrorModel(message: 'err')));
       },
       act: (c) async {
         await c.runOnce();
@@ -113,11 +115,12 @@ void main() {
       'reconciled count from pullAndReconcile is reflected in SyncIdle',
       build: buildCubit,
       setUp: () {
-        when(() => repository.drainPending())
-            .thenAnswer((_) async => const Success(SyncOutcome(0, 0)));
-        when(() => repository.pullAndReconcile(any())).thenAnswer(
-          (_) async => const Success(ReconcileOutcome(2, 900.0)),
-        );
+        when(
+          () => repository.drainPending(),
+        ).thenAnswer((_) async => const Success(SyncOutcome(0, 0)));
+        when(
+          () => repository.pullAndReconcile(any()),
+        ).thenAnswer((_) async => const Success(ReconcileOutcome(2, 900.0)));
       },
       act: (c) => c.runOnce(),
       expect: () => [
@@ -130,8 +133,9 @@ void main() {
       'pullAndReconcile failure is swallowed — still emits SyncIdle',
       build: buildCubit,
       setUp: () {
-        when(() => repository.drainPending())
-            .thenAnswer((_) async => const Success(SyncOutcome(1, 0)));
+        when(
+          () => repository.drainPending(),
+        ).thenAnswer((_) async => const Success(SyncOutcome(1, 0)));
         when(() => repository.pullAndReconcile(any())).thenAnswer(
           (_) async =>
               const Failure(ErrorModel(message: 'Offline', code: 'OFFLINE')),
@@ -145,15 +149,18 @@ void main() {
     );
   });
 
-  test('closing cubit while drainPending is in flight does not throw', () async {
-    final completer = Completer<Result<SyncOutcome>>();
-    when(() => repository.drainPending()).thenAnswer((_) => completer.future);
+  test(
+    'closing cubit while drainPending is in flight does not throw',
+    () async {
+      final completer = Completer<Result<SyncOutcome>>();
+      when(() => repository.drainPending()).thenAnswer((_) => completer.future);
 
-    final cubit = buildCubit();
-    unawaited(cubit.runOnce());
-    await cubit.close();
-    completer.complete(const Success(SyncOutcome(1, 0)));
-    // Let microtasks settle — the isClosed guard must prevent a StateError.
-    await Future<void>.delayed(Duration.zero);
-  });
+      final cubit = buildCubit();
+      unawaited(cubit.runOnce());
+      await cubit.close();
+      completer.complete(const Success(SyncOutcome(1, 0)));
+      // Let microtasks settle — the isClosed guard must prevent a StateError.
+      await Future<void>.delayed(Duration.zero);
+    },
+  );
 }

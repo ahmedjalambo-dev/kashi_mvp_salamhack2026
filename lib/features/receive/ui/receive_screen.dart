@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/components/amount_input.dart';
 import '../../../core/components/loading_view.dart';
@@ -67,7 +68,7 @@ class _RequestInputView extends StatelessWidget {
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: cubit.buildRequest,
-              icon: const Icon(Icons.qr_code),
+              icon: const Icon(LucideIcons.qrCode),
               label: const Text('Generate Request'),
             ),
             if (error != null) ...[
@@ -107,9 +108,10 @@ class _ShowRequestView extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      amount.toStringAsFixed(2),
+                      '₪ ${amount.toStringAsFixed(2)}',
                       style: theme.textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -138,18 +140,12 @@ class _ShowRequestView extends StatelessWidget {
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: cubit.openConfirmationScanner,
-            style: const ButtonStyle(
-              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-            ),
-            icon: const Icon(Icons.qr_code_scanner),
+            icon: const Icon(LucideIcons.scanLine),
             label: const Text("Scan sender's confirmation"),
           ),
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: cubit.restart,
-            style: const ButtonStyle(
-              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-            ),
             child: const Text('New request'),
           ),
         ],
@@ -170,7 +166,7 @@ class _DoneView extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+          Icon(LucideIcons.circleCheck, size: 64, color: Colors.green),
           const SizedBox(height: 12),
           Text(
             'Payment received',
@@ -185,9 +181,6 @@ class _DoneView extends StatelessWidget {
           const SizedBox(height: 32),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            style: const ButtonStyle(
-              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-            ),
             child: const Text('Done'),
           ),
         ],
