@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
@@ -7,55 +8,50 @@ import 'send_state.dart';
 class SendCubit extends Cubit<SendState> {
   SendCubit({required SendRepository repository, required this.senderPublicKey})
     : _repository = repository,
-      super(const SendScanning());
+      super(const SendInitial());
 
   final SendRepository _repository;
   final String senderPublicKey;
-  bool _busy = false;
 
-  Future<void> onScan(String raw) async {
-    if (_busy || state is! SendScanning) return;
-    _busy = true;
-    emit(const SendVerifying());
-    final result = await _repository.validateScannedRequest(
-      raw,
-      senderPublicKey,
+  final amountController = TextEditingController();
+  final recipientController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  Future<void> reviewTransfer(double amount) async {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    final recipient = recipientController.text.trim();
+    emit(const SendLoading());
+    final result = await _repository.validateAmount(
+      senderPublicKey: senderPublicKey,
+      amount: amount,
     );
-    if (isClosed) {
-      _busy = false;
-      return;
-    }
+    if (isClosed) return;
     switch (result) {
-      case Success(:final data):
-        emit(
-          SendConfirming(
-            amount: data.amount,
-            receiverPublicKey: data.receiverPublicKey,
-            request: data,
-          ),
-        );
+      case Success():
+        emit(SendConfirming(amount: amount, receiverPublicKey: recipient));
       case Failure(:final error):
         emit(SendFailure(error.message));
     }
-    _busy = false;
   }
 
-  Future<void> confirmAndSign() async {
+  Future<void> confirmAndGenerateQR() async {
     final s = state;
     if (s is! SendConfirming) return;
-    emit(const SendVerifying());
-    final result = await _repository.signAndStore(s.request, senderPublicKey);
+    emit(const SendLoading());
+    final result = await _repository.buildSignedQr(
+      senderPublicKey: senderPublicKey,
+      receiverPublicKey: s.receiverPublicKey,
+      amount: s.amount,
+    );
     if (isClosed) return;
     switch (result) {
       case Success(:final data):
-        emit(
-          SendSuccess(
-            amount: s.amount,
-            receiverPublicKey: s.receiverPublicKey,
-            transactionId: data.transactionId,
-            qrData: data.qrData,
-          ),
-        );
+        emit(SendReady(
+          qrData: data.qrData,
+          transactionId: data.transactionId,
+          amount: s.amount,
+          receiverPublicKey: s.receiverPublicKey,
+        ));
       case Failure(:final error):
         emit(SendFailure(error.message));
     }
@@ -63,8 +59,38 @@ class SendCubit extends Cubit<SendState> {
 
   void cancelReview() {
     if (state is! SendConfirming) return;
-    emit(const SendScanning());
+    emit(const SendInitial());
   }
 
-  void rescan() => emit(const SendScanning());
+  Future<void> cancelTransfer() async {
+    final s = state;
+    if (s is! SendReady) return;
+    emit(const SendLoading());
+    final result = await _repository.cancelPendingTransaction(
+      s.transactionId,
+      s.amount,
+    );
+    if (isClosed) return;
+    switch (result) {
+      case Success():
+        amountController.clear();
+        recipientController.clear();
+        emit(const SendInitial());
+      case Failure(:final error):
+        emit(SendFailure(error.message));
+    }
+  }
+
+  void reset() {
+    amountController.clear();
+    recipientController.clear();
+    emit(const SendInitial());
+  }
+
+  @override
+  Future<void> close() {
+    amountController.dispose();
+    recipientController.dispose();
+    return super.close();
+  }
 }

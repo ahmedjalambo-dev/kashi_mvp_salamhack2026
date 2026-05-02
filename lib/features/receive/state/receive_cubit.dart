@@ -1,7 +1,7 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/result.dart';
+import '../../send/data/models/payment_payload.dart';
 import '../data/repositories/receive_repository.dart';
 import 'receive_state.dart';
 
@@ -10,82 +10,41 @@ class ReceiveCubit extends Cubit<ReceiveState> {
     required ReceiveRepository repository,
     required this.myPublicKey,
   }) : _repository = repository,
-       super(const ReceiveRequestInput());
+       super(const ReceiveScanning());
 
   final ReceiveRepository _repository;
   final String myPublicKey;
+  bool _busy = false;
 
-  final amountController = TextEditingController();
-  final formKey = GlobalKey<FormState>();
-
-  Future<void> buildRequest() async {
-    if (!(formKey.currentState?.validate() ?? false)) return;
-    emit(const ReceiveBuildingRequest());
-    final result = await _repository.buildRequest(
-      amountController.text,
-      myPublicKey,
-    );
-    if (isClosed) return;
+  Future<void> onScan(String raw) async {
+    if (_busy || state is! ReceiveScanning) return;
+    _busy = true;
+    emit(const ReceiveVerifying());
+    final result = await _repository.validateScan(raw, myPublicKey);
     switch (result) {
       case Success(:final data):
-        emit(ReceiveShowingRequest(qrData: data.qrData, request: data.request));
+        emit(ReceiveConfirming(data));
+      case Failure(:final error):
+        emit(ReceiveFailure(error.message));
+    }
+    _busy = false;
+  }
+
+  Future<void> confirmTransaction(PaymentPayload payload) async {
+    final s = state;
+    if (s is! ReceiveConfirming) return;
+    assert(s.payload == payload);
+    emit(const ReceiveVerifying());
+    final result = await _repository.acceptValidated(s.envelope);
+    switch (result) {
+      case Success(:final data):
+        emit(ReceiveSuccess(data.payload));
       case Failure(:final error):
         emit(ReceiveFailure(error.message));
     }
   }
 
-  Future<void> markFulfilled() async {
-    final current = state;
-    if (current is! ReceiveShowingRequest) return;
-    // Best-effort local persistence; UI dismissal proceeds regardless.
-    await _repository.markFulfilledLocally(current.request.id);
-    if (isClosed) return;
-    emit(const ReceiveDone());
-  }
+  void cancelTransaction() => emit(const ReceiveScanning());
 
-  /// Transitions to [ReceiveScanningConfirmation] so the UI opens the QR
-  /// scanner aimed at the sender's confirmation QR.
-  void openConfirmationScanner() {
-    final current = state;
-    if (current is! ReceiveShowingRequest) return;
-    emit(ReceiveScanningConfirmation(current.request, current.qrData));
-  }
-
-  /// Called by [ScannerView.onDetect] when the receiver scans the sender's
-  /// confirmation QR.
-  Future<void> onConfirmationScanned(String qr) async {
-    final current = state;
-    if (current is! ReceiveScanningConfirmation) return;
-    final request = current.request;
-    final qrData = current.qrData;
-    emit(ReceiveConfirmingPayment(request, qrData));
-
-    final result = await _repository.confirmEnvelope(qr, request);
-    if (isClosed) return;
-    switch (result) {
-      case Success():
-        emit(const ReceiveDone());
-      case Failure(:final error):
-        // Return to the request view with an inline error so the user can
-        // retry scanning without losing the request QR.
-        emit(
-          ReceiveShowingRequest(
-            qrData: qrData,
-            request: request,
-            errorMessage: error.message,
-          ),
-        );
-    }
-  }
-
-  void restart() {
-    amountController.clear();
-    emit(const ReceiveRequestInput());
-  }
-
-  @override
-  Future<void> close() {
-    amountController.dispose();
-    return super.close();
-  }
+  void rescan() => emit(const ReceiveScanning());
 }

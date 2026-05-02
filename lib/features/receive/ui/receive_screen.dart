@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../core/components/amount_input.dart';
 import '../../../core/components/loading_view.dart';
-import '../../../core/components/qr_view.dart';
-import '../../send/ui/components/scanner_view.dart';
+import '../../send/data/models/payment_payload.dart';
+import '../../sync/state/sync_cubit.dart';
 import '../state/receive_cubit.dart';
 import '../state/receive_state.dart';
+import 'components/scanner_view.dart';
 
 class ReceiveScreen extends StatelessWidget {
   const ReceiveScreen({super.key});
@@ -16,65 +15,118 @@ class ReceiveScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Receive')),
-      body: BlocBuilder<ReceiveCubit, ReceiveState>(
-        builder: (context, state) {
-          final cubit = context.read<ReceiveCubit>();
-          return switch (state) {
-            ReceiveRequestInput() => _RequestInputView(error: null),
-            ReceiveFailure(:final message) => _RequestInputView(error: message),
-            ReceiveBuildingRequest() => const LoadingView(
-              message: 'Creating request…',
-            ),
-            ReceiveShowingRequest(
-              :final qrData,
-              :final request,
-              :final errorMessage,
-            ) =>
-              _ShowRequestView(
-                qrData: qrData,
-                amount: request.amount,
-                errorMessage: errorMessage,
-                cubit: cubit,
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<ReceiveCubit, ReceiveState>(
+            listenWhen: (_, s) => s is ReceiveSuccess,
+            listener: (context, _) => context.read<SyncCubit>().runOnce(),
+          ),
+          BlocListener<ReceiveCubit, ReceiveState>(
+            listenWhen: (_, s) => s is ReceiveConfirming,
+            listener: (context, state) {
+              final cubit = context.read<ReceiveCubit>();
+              final payload = (state as ReceiveConfirming).payload;
+              showModalBottomSheet<void>(
+                context: context,
+                isDismissible: false,
+                enableDrag: false,
+                isScrollControlled: true,
+                builder: (sheetCtx) => _ConfirmSheet(
+                  payload: payload,
+                  onAccept: () {
+                    Navigator.pop(sheetCtx);
+                    cubit.confirmTransaction(payload);
+                  },
+                  onCancel: () {
+                    Navigator.pop(sheetCtx);
+                    cubit.cancelTransaction();
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+        child: BlocBuilder<ReceiveCubit, ReceiveState>(
+          builder: (context, state) {
+            final cubit = context.read<ReceiveCubit>();
+            return switch (state) {
+              ReceiveScanning() => ScannerView(onDetect: cubit.onScan),
+              ReceiveConfirming() =>
+                ScannerView(onDetect: cubit.onScan, paused: true),
+              ReceiveVerifying() => const LoadingView(
+                message: 'Verifying signature…',
               ),
-            ReceiveScanningConfirmation() => ScannerView(
-              onDetect: cubit.onConfirmationScanned,
-            ),
-            ReceiveConfirmingPayment() => const LoadingView(
-              message: 'Verifying confirmation…',
-            ),
-            ReceiveDone() => _DoneView(cubit: cubit),
-          };
-        },
+              ReceiveSuccess(:final payload) => _ResultView(
+                title: 'Saved as pending sync',
+                message:
+                    'Received ${payload.amount.toStringAsFixed(2)}.\nWill sync on next online check.',
+                onAction: cubit.rescan,
+                actionLabel: 'Scan another',
+                isError: false,
+              ),
+              ReceiveFailure(:final message) => _ResultView(
+                title: 'Cannot accept',
+                message: message,
+                onAction: cubit.rescan,
+                actionLabel: 'Try again',
+                isError: true,
+              ),
+            };
+          },
+        ),
       ),
     );
   }
 }
 
-class _RequestInputView extends StatelessWidget {
-  const _RequestInputView({required this.error});
-  final String? error;
+class _ConfirmSheet extends StatelessWidget {
+  const _ConfirmSheet({
+    required this.payload,
+    required this.onAccept,
+    required this.onCancel,
+  });
+
+  final PaymentPayload payload;
+  final VoidCallback onAccept;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<ReceiveCubit>();
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: cubit.formKey,
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AmountInput(controller: cubit.amountController),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: cubit.buildRequest,
-              icon: const Icon(LucideIcons.qrCode),
-              label: const Text('Generate Request'),
+            Text('Confirm Payment', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 16),
+            Text(
+              payload.amount.toStringAsFixed(2),
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            if (error != null) ...[
-              const SizedBox(height: 16),
-              Text(error!, style: const TextStyle(color: Colors.redAccent)),
-            ],
+            const SizedBox(height: 8),
+            Text('From', style: theme.textTheme.labelMedium),
+            const SizedBox(height: 4),
+            SelectableText(
+              payload.senderPublicKey,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 32),
+            FilledButton(
+              onPressed: onAccept,
+              child: const Text('Accept & Sync'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: onCancel,
+              child: const Text('Cancel'),
+            ),
           ],
         ),
       ),
@@ -82,81 +134,20 @@ class _RequestInputView extends StatelessWidget {
   }
 }
 
-class _ShowRequestView extends StatelessWidget {
-  const _ShowRequestView({
-    required this.qrData,
-    required this.amount,
-    required this.cubit,
-    this.errorMessage,
+class _ResultView extends StatelessWidget {
+  const _ResultView({
+    required this.title,
+    required this.message,
+    required this.onAction,
+    required this.actionLabel,
+    required this.isError,
   });
 
-  final String qrData;
-  final double amount;
-  final ReceiveCubit cubit;
-  final String? errorMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Text(
-                      '₪ ${amount.toStringAsFixed(2)}',
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    QrView(data: qrData, label: 'Show this code to the sender'),
-                    if (errorMessage != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        errorMessage!,
-                        style: const TextStyle(color: Colors.redAccent),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // const SizedBox(height: 12),
-          // FilledButton(
-          //   onPressed: cubit.markFulfilled,
-          //   style: const ButtonStyle(
-          //     minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
-          //   ),
-          //   child: const Text('Mark fulfilled'),
-          // ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: cubit.openConfirmationScanner,
-            icon: const Icon(LucideIcons.scanLine),
-            label: const Text("Scan sender's confirmation"),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: cubit.restart,
-            child: const Text('New request'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DoneView extends StatelessWidget {
-  const _DoneView({required this.cubit});
-  final ReceiveCubit cubit;
+  final String title;
+  final String message;
+  final VoidCallback onAction;
+  final String actionLabel;
+  final bool isError;
 
   @override
   Widget build(BuildContext context) {
@@ -164,25 +155,18 @@ class _DoneView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(LucideIcons.circleCheck, size: 64, color: Colors.green),
+          Icon(
+            isError ? Icons.error_outline : Icons.check_circle_outline,
+            size: 64,
+            color: isError ? Colors.redAccent : Colors.green,
+          ),
           const SizedBox(height: 12),
-          Text(
-            'Payment received',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
+          Text(title, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-            'The transaction is queued for sync. It will confirm once either device is online.',
-            textAlign: TextAlign.center,
-          ),
+          Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 32),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Done'),
-          ),
+          FilledButton(onPressed: onAction, child: Text(actionLabel)),
         ],
       ),
     );

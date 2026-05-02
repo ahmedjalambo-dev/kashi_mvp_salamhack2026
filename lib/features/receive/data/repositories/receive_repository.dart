@@ -1,161 +1,98 @@
-import 'dart:convert';
-import 'dart:math';
+import 'package:sqflite/sqflite.dart';
 
-import 'package:uuid/uuid.dart';
-
+import '../../../../core/crypto/ecdsa_signer.dart';
+import '../../../../core/crypto/payload_codec.dart';
 import '../../../../core/network/error_handler.dart';
 import '../../../../core/network/error_model.dart';
 import '../../../../core/network/result.dart';
-import '../../../../core/services/qr_codec.dart';
 import '../../../send/data/models/payment_payload.dart';
-import '../../../send/data/services/payment_signer.dart';
-import '../services/incoming_pending_local_service.dart';
-import '../services/pending_request_local_service.dart';
+import '../services/pending_tx_local_service.dart';
+import '../services/scanner_service.dart';
 
 class ReceiveRepository {
   ReceiveRepository({
-    required QrCodec qrCodec,
-    required Uuid uuid,
+    required ScannerService scanner,
+    required PendingTxLocalService pendingTx,
+    required EcdsaSigner signer,
+    required PayloadCodec codec,
     required ErrorHandler errors,
-    required PendingRequestLocalService pendingRequests,
-    required IncomingPendingLocalService incomingPending,
-    required PaymentSigner paymentSigner,
-    Random? random,
-  }) : _qrCodec = qrCodec,
-       _uuid = uuid,
-       _errors = errors,
-       _pendingRequests = pendingRequests,
-       _incomingPending = incomingPending,
-       _paymentSigner = paymentSigner,
-       _random = random ?? Random.secure();
+  }) : _scanner = scanner,
+       _pending = pendingTx,
+       _signer = signer,
+       _codec = codec,
+       _errors = errors;
 
-  final QrCodec _qrCodec;
-  final Uuid _uuid;
+  final ScannerService _scanner;
+  final PendingTxLocalService _pending;
+  final EcdsaSigner _signer;
+  final PayloadCodec _codec;
   final ErrorHandler _errors;
-  final PendingRequestLocalService _pendingRequests;
-  final IncomingPendingLocalService _incomingPending;
-  final PaymentSigner _paymentSigner;
-  final Random _random;
 
-  Future<Result<({PaymentRequest request, String qrData})>> buildRequest(
-    String amountText,
+  // QR codes are valid for at most 1 hour; reject anything more than 5 min
+  // in the future (clock skew guard).
+  static const _maxAgeMinutes = 60;
+  static const _maxFutureMinutes = 5;
+
+  Future<Result<SignedEnvelope>> validateScan(
+    String raw,
     String myPublicKey,
   ) async {
     try {
-      final amount = double.tryParse(amountText.trim());
-      if (amount == null || amount <= 0) {
-        return const Failure(
-          ErrorModel(message: 'Enter a valid amount', code: 'AMOUNT'),
-        );
-      }
-      final now = DateTime.now().toUtc();
-      final request = PaymentRequest(
-        id: _uuid.v4(),
-        receiverPublicKey: myPublicKey,
-        amount: amount,
-        nonce: _nonce(),
-        clientCreatedAt: now,
-        expiresAt: now.add(const Duration(hours: 1)),
-      );
-      final qrData = _qrCodec.encodeRequest(request);
-      await _pendingRequests.insert(request);
-      return Success((request: request, qrData: qrData));
-    } catch (e) {
-      return Failure(_errors.map(e));
-    }
-  }
-
-  Future<Result<void>> markFulfilledLocally(String id) async {
-    try {
-      await _pendingRequests.markFulfilledLocally(id);
-      return const Success(null);
-    } catch (e) {
-      return Failure(_errors.map(e));
-    }
-  }
-
-  Future<Result<void>> dismissExpired(String id) async {
-    try {
-      await _pendingRequests.delete(id);
-      return const Success(null);
-    } catch (e) {
-      return Failure(_errors.map(e));
-    }
-  }
-
-  /// Decodes and verifies the sender's confirmation QR, then stores the
-  /// [SignedEnvelope] in [IncomingPendingLocalService] and deletes the
-  /// matching [PendingRequestLocalService] row — atomically in a sqflite
-  /// batch so neither half can commit without the other.
-  ///
-  /// Validation order:
-  /// 1. Decode QR → [SignedEnvelope].
-  /// 2. Check id, amount, nonce, receiverPublicKey match [request].
-  /// 3. Verify ECDSA signature with [PaymentSigner.verify].
-  /// 4. If all checks pass, write to DB.
-  Future<Result<SignedEnvelope>> confirmEnvelope(
-    String qrData,
-    PaymentRequest request,
-  ) async {
-    try {
-      // 1. Decode
-      final SignedEnvelope envelope;
-      try {
-        envelope = _qrCodec.decodeEnvelope(qrData);
-      } on FormatException catch (e) {
-        return Failure(ErrorModel(message: e.message, code: 'MALFORMED_QR'));
-      }
-
+      final envelope = _scanner.parse(raw);
       final p = envelope.payload;
 
-      // 2. Field matching
-      if (p.id != request.id) {
+      if (p.senderPublicKey.isEmpty ||
+          p.receiverPublicKey.isEmpty ||
+          envelope.signature.isEmpty ||
+          p.id.isEmpty ||
+          p.nonce.isEmpty) {
+        return const Failure(
+          ErrorModel(message: 'Malformed payload', code: 'MALFORMED'),
+        );
+      }
+      if (p.receiverPublicKey != myPublicKey) {
         return const Failure(
           ErrorModel(
-            message: 'Envelope ID does not match this request',
-            code: 'ID_MISMATCH',
+            message: 'QR is for a different wallet',
+            code: 'WRONG_RECEIVER',
           ),
         );
       }
-      if ((p.amount - request.amount).abs() > 0.001) {
+      if (p.amount <= 0) {
         return const Failure(
-          ErrorModel(
-            message: 'Envelope amount does not match this request',
-            code: 'AMOUNT_MISMATCH',
-          ),
+          ErrorModel(message: 'Invalid amount', code: 'AMOUNT'),
         );
       }
-      if (p.nonce != request.nonce) {
+
+      final now = DateTime.now().toUtc();
+
+      // Reject if the sender's clock is more than 5 min ahead of ours.
+      if (p.clientCreatedAt.isAfter(
+        now.add(const Duration(minutes: _maxFutureMinutes)),
+      )) {
         return const Failure(
           ErrorModel(
-            message: 'Envelope nonce does not match this request',
-            code: 'NONCE_MISMATCH',
-          ),
-        );
-      }
-      if (p.receiverPublicKey != request.receiverPublicKey) {
-        return const Failure(
-          ErrorModel(
-            message: 'Envelope receiver does not match this request',
-            code: 'RECEIVER_MISMATCH',
+            message: 'QR timestamp is too far in the future',
+            code: 'CLOCK_SKEW',
           ),
         );
       }
 
-      // 3. Signature verification
-      if (!_paymentSigner.verify(p, envelope.signature)) {
+      // Reject if older than 1 hour or past the payload's own expiry.
+      final age = now.difference(p.clientCreatedAt);
+      if (age.inMinutes > _maxAgeMinutes || now.isAfter(p.expiresAt)) {
         return const Failure(
-          ErrorModel(
-            message: 'Signature verification failed',
-            code: 'SIGNATURE_INVALID',
-          ),
+          ErrorModel(message: 'QR has expired', code: 'EXPIRED'),
         );
       }
 
-      // 4. Persist: insert incoming_pending + delete pending_requests row,
-      //    performed in a single sqflite batch for atomicity.
-      await _incomingPending.insert(envelope);
-      await _pendingRequests.delete(request.id);
+      final bytes = _codec.canonicalBytes(p.toJson());
+      final ok = _signer.verify(bytes, envelope.signature, p.senderPublicKey);
+      if (!ok) {
+        return const Failure(
+          ErrorModel(message: 'Invalid signature', code: 'BAD_SIG'),
+        );
+      }
 
       return Success(envelope);
     } catch (e) {
@@ -163,8 +100,23 @@ class ReceiveRepository {
     }
   }
 
-  String _nonce() {
-    final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
-    return base64Encode(bytes);
+  Future<Result<SignedEnvelope>> acceptValidated(
+    SignedEnvelope envelope,
+  ) async {
+    try {
+      try {
+        await _pending.insert(envelope);
+      } on DatabaseException catch (e) {
+        if (e.isUniqueConstraintError()) {
+          return const Failure(
+            ErrorModel(message: 'Already received', code: 'ALREADY_RECEIVED'),
+          );
+        }
+        rethrow;
+      }
+      return Success(envelope);
+    } catch (e) {
+      return Failure(_errors.map(e));
+    }
   }
 }

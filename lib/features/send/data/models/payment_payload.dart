@@ -1,56 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-class PaymentRequest extends Equatable {
-  final String type;
-  final String id;
-  final String receiverPublicKey;
-  final double amount;
-  final String nonce;
-  final DateTime clientCreatedAt;
-  final DateTime expiresAt;
-
-  const PaymentRequest({
-    this.type = 'request',
-    required this.id,
-    required this.receiverPublicKey,
-    required this.amount,
-    required this.nonce,
-    required this.clientCreatedAt,
-    required this.expiresAt,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'type': type,
-    'id': id,
-    'receiver_public_key': receiverPublicKey,
-    'amount': amount,
-    'nonce': nonce,
-    'client_created_at': clientCreatedAt.toUtc().toIso8601String(),
-    'expires_at': expiresAt.toUtc().toIso8601String(),
-  };
-
-  factory PaymentRequest.fromJson(Map<String, dynamic> json) => PaymentRequest(
-    type: json['type'] as String? ?? 'request',
-    id: json['id'] as String,
-    receiverPublicKey: json['receiver_public_key'] as String,
-    amount: (json['amount'] as num).toDouble(),
-    nonce: json['nonce'] as String,
-    clientCreatedAt: DateTime.parse(json['client_created_at'] as String),
-    expiresAt: DateTime.parse(json['expires_at'] as String),
-  );
-
-  @override
-  List<Object?> get props => [
-    type,
-    id,
-    receiverPublicKey,
-    amount,
-    nonce,
-    clientCreatedAt,
-    expiresAt,
-  ];
-}
-
 class PaymentPayload extends Equatable {
   final String id;
   final String senderPublicKey;
@@ -69,19 +18,6 @@ class PaymentPayload extends Equatable {
     required this.clientCreatedAt,
     required this.expiresAt,
   });
-
-  factory PaymentPayload.fromRequest(
-    PaymentRequest request,
-    String senderPublicKey,
-  ) => PaymentPayload(
-    id: request.id,
-    senderPublicKey: senderPublicKey,
-    receiverPublicKey: request.receiverPublicKey,
-    amount: request.amount,
-    nonce: request.nonce,
-    clientCreatedAt: request.clientCreatedAt,
-    expiresAt: request.expiresAt,
-  );
 
   Map<String, dynamic> toJson() => {
     'id': id,

@@ -1,47 +1,43 @@
 import 'package:equatable/equatable.dart';
 
-import '../data/models/payment_payload.dart';
-
 sealed class SendState extends Equatable {
   const SendState();
   @override
   List<Object?> get props => [];
 }
 
-class SendScanning extends SendState {
-  const SendScanning();
+class SendInitial extends SendState {
+  const SendInitial();
 }
 
-class SendVerifying extends SendState {
-  const SendVerifying();
+class SendLoading extends SendState {
+  const SendLoading();
 }
 
 class SendConfirming extends SendState {
   final double amount;
   final String receiverPublicKey;
-  final PaymentRequest request;
   const SendConfirming({
     required this.amount,
     required this.receiverPublicKey,
-    required this.request,
   });
   @override
-  List<Object?> get props => [amount, receiverPublicKey, request];
+  List<Object?> get props => [amount, receiverPublicKey];
 }
 
-class SendSuccess extends SendState {
+class SendReady extends SendState {
+  final String qrData;
+  final String transactionId;
   final double amount;
   final String receiverPublicKey;
-  final String transactionId;
-  final String qrData;
-  const SendSuccess({
+  const SendReady({
+    required this.qrData,
+    required this.transactionId,
     required this.amount,
     required this.receiverPublicKey,
-    required this.transactionId,
-    required this.qrData,
   });
   @override
-  List<Object?> get props => [amount, receiverPublicKey, transactionId, qrData];
+  List<Object?> get props => [qrData, transactionId, amount, receiverPublicKey];
 }
 
 class SendFailure extends SendState {
