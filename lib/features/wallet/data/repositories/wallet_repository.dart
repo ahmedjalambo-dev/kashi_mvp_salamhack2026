@@ -80,8 +80,18 @@ class WalletRepository {
 
   /// Last balance persisted from a successful remote fetch. Returns null if
   /// the app has never been online with this key.
-  Future<WalletModel?> loadCached(String publicKey) =>
-      _local.loadCached(publicKey);
+  Future<WalletModel?> loadCached(String publicKey) async {
+    final cached = await _local.loadCached(publicKey);
+    if (cached == null) return null;
+    final profile = await _readStoredProfile();
+    if (profile == null) return cached;
+    return WalletModel(
+      id: cached.id,
+      publicKey: cached.publicKey,
+      balance: cached.balance,
+      profile: profile,
+    );
+  }
 
   Future<Result<WalletModel>> initializeWallet({String? deviceId}) async {
     try {
@@ -120,9 +130,27 @@ class WalletRepository {
         );
       }
       await _local.cacheBalance(wallet.publicKey, wallet.balance);
-      return Success(wallet);
+      if (wallet.profile != null) return Success(wallet);
+      final profile = await _readStoredProfile();
+      if (profile == null) return Success(wallet);
+      return Success(
+        WalletModel(
+          id: wallet.id,
+          publicKey: wallet.publicKey,
+          balance: wallet.balance,
+          profile: profile,
+        ),
+      );
     } catch (e) {
       return Failure(_errors.map(e));
     }
+  }
+
+  Future<WalletProfile?> _readStoredProfile() async {
+    final dn = await _storage.read(AppConstants.secureStorageDisplayName);
+    final ph = await _storage.read(AppConstants.secureStoragePhone);
+    final ib = await _storage.read(AppConstants.secureStorageIban);
+    if (dn == null || ph == null || ib == null) return null;
+    return WalletProfile(displayName: dn, phone: ph, iban: ib);
   }
 }
