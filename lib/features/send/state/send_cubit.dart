@@ -6,20 +6,22 @@ import '../data/repositories/send_repository.dart';
 import 'send_state.dart';
 
 class SendCubit extends Cubit<SendState> {
-  SendCubit({required SendRepository repository, required this.senderPublicKey})
-    : _repository = repository,
-      super(const SendInitial());
+  SendCubit({
+    required SendRepository repository,
+    required this.senderPublicKey,
+    required this.receiverPublicKey,
+  }) : _repository = repository,
+       super(const SendInitial());
 
   final SendRepository _repository;
   final String senderPublicKey;
+  final String receiverPublicKey;
 
   final amountController = TextEditingController();
-  final recipientController = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
   Future<void> reviewTransfer(double amount) async {
     if (!(formKey.currentState?.validate() ?? false)) return;
-    final recipient = recipientController.text.trim();
     emit(const SendLoading());
     final result = await _repository.validateAmount(
       senderPublicKey: senderPublicKey,
@@ -28,7 +30,7 @@ class SendCubit extends Cubit<SendState> {
     if (isClosed) return;
     switch (result) {
       case Success():
-        emit(SendConfirming(amount: amount, receiverPublicKey: recipient));
+        emit(SendConfirming(amount: amount, receiverPublicKey: receiverPublicKey));
       case Failure(:final error):
         emit(SendFailure(error.message));
     }
@@ -74,7 +76,6 @@ class SendCubit extends Cubit<SendState> {
     switch (result) {
       case Success():
         amountController.clear();
-        recipientController.clear();
         emit(const SendInitial());
       case Failure(:final error):
         emit(SendFailure(error.message));
@@ -83,14 +84,12 @@ class SendCubit extends Cubit<SendState> {
 
   void reset() {
     amountController.clear();
-    recipientController.clear();
     emit(const SendInitial());
   }
 
   @override
   Future<void> close() {
     amountController.dispose();
-    recipientController.dispose();
     return super.close();
   }
 }

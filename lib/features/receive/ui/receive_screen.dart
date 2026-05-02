@@ -6,7 +6,7 @@ import '../../send/data/models/payment_payload.dart';
 import '../../sync/state/sync_cubit.dart';
 import '../state/receive_cubit.dart';
 import '../state/receive_state.dart';
-import 'components/scanner_view.dart';
+import '../../../core/components/scanner_view.dart';
 
 class ReceiveScreen extends StatelessWidget {
   const ReceiveScreen({super.key});

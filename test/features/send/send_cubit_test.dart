@@ -33,6 +33,7 @@ void main() {
   SendCubit buildCubit() => SendCubit(
         repository: repository,
         senderPublicKey: 'sender-pub',
+        receiverPublicKey: 'recv-pub',
       );
 
   group('cancelTransfer', () {
@@ -62,7 +63,6 @@ void main() {
           () => repository.cancelPendingTransaction('tx-uuid-1', 42.0),
         ).called(1);
         expect(c.amountController.text, isEmpty);
-        expect(c.recipientController.text, isEmpty);
       },
     );
 
@@ -114,16 +114,7 @@ void main() {
         ).thenAnswer((_) async => const Success(null));
         return buildCubit();
       },
-      act: (c) {
-        c.recipientController.text = 'recv-pub';
-        // Trigger form validation: attach a Form with no failing validators
-        // by pre-populating both controllers so the built-in 'Required' guard
-        // does not block (the formKey has no Widget tree in tests, so
-        // currentState is null and validate() returns false — we stub at the
-        // repository level instead and call reviewTransfer with a pre-parsed
-        // amount directly via the repository path).
-        return c.reviewTransfer(25.0);
-      },
+      act: (c) => c.reviewTransfer(25.0),
       // formKey.currentState is null in tests (no widget tree), so the guard
       // returns early before emitting anything. We verify that validateAmount
       // is NOT called in that case (form guard fires first).
@@ -254,13 +245,11 @@ void main() {
       seed: () => _confirmingState,
       act: (c) {
         c.amountController.text = '25.00';
-        c.recipientController.text = 'recv-pub';
         c.cancelReview();
       },
       expect: () => [const SendInitial()],
       verify: (c) {
         expect(c.amountController.text, '25.00');
-        expect(c.recipientController.text, 'recv-pub');
         verifyNever(
           () => repository.buildSignedQr(
             senderPublicKey: any(named: 'senderPublicKey'),

@@ -161,6 +161,10 @@ class _SendForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<SendCubit>();
+    final pub = cubit.receiverPublicKey;
+    final truncated = pub.length > 20
+        ? '${pub.substring(0, 12)}…${pub.substring(pub.length - 8)}'
+        : pub;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -168,15 +172,36 @@ class _SendForm extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextFormField(
-              controller: cubit.recipientController,
-              decoration: const InputDecoration(
-                labelText: 'Recipient public key',
-                border: OutlineInputBorder(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: Theme.of(context).dividerColor),
+                borderRadius: BorderRadius.circular(8),
               ),
-              maxLines: 3,
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Required' : null,
+              child: Row(
+                children: [
+                  const Icon(Icons.person_outline, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sending to',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          truncated,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             AmountInput(controller: cubit.amountController),

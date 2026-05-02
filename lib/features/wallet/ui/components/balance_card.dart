@@ -6,11 +6,13 @@ class BalanceCard extends StatelessWidget {
     required this.balance,
     required this.publicKey,
     this.pendingOut = 0.0,
+    this.onShowAddress,
   });
 
   final double balance;
   final double pendingOut;
   final String publicKey;
+  final VoidCallback? onShowAddress;
 
   @override
   Widget build(BuildContext context) {
@@ -70,12 +72,33 @@ class BalanceCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            SelectableText(
-              publicKey,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                color: Colors.white,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SelectableText(
+                    publicKey,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                if (onShowAddress != null) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onShowAddress,
+                    child: Tooltip(
+                      message: 'My Address',
+                      child: Icon(
+                        Icons.qr_code,
+                        size: 20,
+                        color: Colors.white.withAlpha(204),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

@@ -126,6 +126,11 @@ class _WalletReadyView extends StatelessWidget {
               balance: balance,
               pendingOut: pendingOut,
               publicKey: publicKey,
+              onShowAddress: () => Navigator.pushNamed(
+                context,
+                Routes.myAddress,
+                arguments: publicKey,
+              ),
             ),
             const SizedBox(height: 24),
             Row(
@@ -134,7 +139,7 @@ class _WalletReadyView extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: () => Navigator.pushNamed(
                       context,
-                      Routes.send,
+                      Routes.scanRecipient,
                       arguments: publicKey,
                     ),
                     icon: const Icon(LucideIcons.scanLine),
