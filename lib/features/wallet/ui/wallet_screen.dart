@@ -42,7 +42,12 @@ class _WalletScreenState extends State<WalletScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kashi Wallet')),
+      appBar: AppBar(
+        title: const Text(
+          'Kashi كاشي',
+          style: TextStyle(fontFamily: 'IBMPlexSansArabic'),
+        ),
+      ),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           return switch (state) {
