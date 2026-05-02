@@ -14,6 +14,7 @@ import '../../history/state/history_cubit.dart';
 import '../../history/ui/components/history_section.dart';
 import '../../sync/state/sync_cubit.dart';
 import '../../sync/state/sync_state.dart';
+import '../data/models/wallet_profile.dart';
 import '../state/wallet_cubit.dart';
 import '../state/wallet_state.dart';
 import 'components/balance_card.dart';
@@ -35,8 +36,6 @@ class _WalletScreenState extends State<WalletScreen>
 
   @override
   void onResurface() {
-    // User just popped back to the wallet (e.g. after Send / Receive).
-    // Re-pull the wallet + let the nested HistoryCubit re-pull as well.
     context.read<WalletCubit>().refresh();
   }
 
@@ -49,9 +48,6 @@ class _WalletScreenState extends State<WalletScreen>
           return switch (state) {
             WalletInitial() ||
             WalletLoading() => const LoadingView(message: 'Preparing wallet…'),
-            // We intentionally do NOT show a full-screen offline error.
-            // The OfflineBanner (in app.dart) covers connectivity loss.
-            // Real failures (e.g. crypto / storage) still render here.
             WalletFailure(:final message) => ErrorView(
               message: message,
               onRetry: () => context.read<WalletCubit>().initialize(),
@@ -66,6 +62,7 @@ class _WalletScreenState extends State<WalletScreen>
                   publicKey: wallet.publicKey,
                   balance: wallet.balance,
                   pendingOut: pendingOut,
+                  profile: wallet.profile,
                 ),
               ),
           };
@@ -80,18 +77,18 @@ class _WalletReadyView extends StatelessWidget {
     required this.publicKey,
     required this.balance,
     required this.pendingOut,
+    required this.profile,
   });
 
   final String publicKey;
   final double balance;
   final double pendingOut;
+  final WalletProfile? profile;
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: () async {
-        // Capture cubits before awaiting so we don't reach across an async
-        // gap into `context` after the first await.
         final wallet = context.read<WalletCubit>();
         final history = context.read<HistoryCubit>();
         await wallet.refresh();
@@ -102,8 +99,6 @@ class _WalletReadyView extends StatelessWidget {
           BlocListener<NetworkCubit, NetworkState>(
             listenWhen: (a, b) => a is! NetworkOnline && b is NetworkOnline,
             listener: (context, _) {
-              // When connectivity returns, opportunistically re-pull remote
-              // history. Sync runs independently via SyncCubit's listener.
               context.read<HistoryCubit>().refresh();
             },
           ),
@@ -111,9 +106,6 @@ class _WalletReadyView extends StatelessWidget {
             listenWhen: (a, b) =>
                 a is SyncRunning && b is SyncIdle && b.synced > 0,
             listener: (context, _) {
-              // A sync run just landed pending rows into Supabase. Pull the
-              // wallet balance + history so completed transactions migrate
-              // out of "Pending" into "History" without a manual refresh.
               context.read<WalletCubit>().refresh();
               context.read<HistoryCubit>().refresh();
             },
@@ -122,26 +114,42 @@ class _WalletReadyView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            BalanceCard(
-              balance: balance,
-              pendingOut: pendingOut,
-              publicKey: publicKey,
-              onShowAddress: () => Navigator.pushNamed(
-                context,
-                Routes.myAddress,
-                arguments: publicKey,
+            if (profile != null)
+              BalanceCard(
+                balance: balance,
+                pendingOut: pendingOut,
+                profile: profile!,
+                onShowAddress: () => Navigator.pushNamed(
+                  context,
+                  Routes.myAddress,
+                  arguments: (publicKey: publicKey, profile: profile!),
+                ),
+              )
+            else
+              BalanceCard(
+                balance: balance,
+                pendingOut: pendingOut,
+                profile: const WalletProfile(
+                  displayName: '—',
+                  phone: '—',
+                  iban: '—',
+                ),
               ),
-            ),
             const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      Routes.scanRecipient,
-                      arguments: publicKey,
-                    ),
+                    onPressed: profile == null
+                        ? null
+                        : () => Navigator.pushNamed(
+                            context,
+                            Routes.scanRecipient,
+                            arguments: (
+                              senderPub: publicKey,
+                              senderProfile: profile!,
+                            ),
+                          ),
                     icon: const Icon(LucideIcons.scanLine),
                     label: const Text('Send'),
                   ),

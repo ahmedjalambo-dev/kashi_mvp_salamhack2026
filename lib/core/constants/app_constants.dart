@@ -9,6 +9,10 @@ class AppConstants {
   static const secureStoragePrivateKey = 'kashi.privateKey';
   static const sharedPublicKeyPref = 'kashi.publicKey';
 
+  static const secureStorageDisplayName = 'kashi.profile.displayName';
+  static const secureStoragePhone = 'kashi.profile.phone';
+  static const secureStorageIban = 'kashi.profile.iban';
+
   static const envSupabaseUrl = 'SUPABASE_URL';
   static const envSupabaseAnonKey = 'SUPABASE_ANON_KEY';
 

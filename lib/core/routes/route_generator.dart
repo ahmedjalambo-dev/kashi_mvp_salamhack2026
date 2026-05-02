@@ -7,6 +7,7 @@ import '../../features/receive/ui/receive_screen.dart';
 import '../../features/send/state/send_cubit.dart';
 import '../../features/send/ui/scan_recipient_screen.dart';
 import '../../features/send/ui/send_screen.dart';
+import '../../features/wallet/data/models/wallet_profile.dart';
 import '../../features/wallet/state/wallet_cubit.dart';
 import '../../features/wallet/ui/wallet_screen.dart';
 import '../di/injector.dart';
@@ -14,6 +15,17 @@ import '../../features/receive/data/repositories/receive_repository.dart';
 import '../../features/send/data/repositories/send_repository.dart';
 import '../../features/wallet/data/repositories/wallet_repository.dart';
 import 'routes.dart';
+
+typedef SendArgs = ({
+  String senderPub,
+  String receiverPub,
+  WalletProfile senderProfile,
+  WalletProfile receiverProfile,
+});
+
+typedef ScanRecipientArgs = ({String senderPub, WalletProfile senderProfile});
+
+typedef MyAddressArgs = ({String publicKey, WalletProfile profile});
 
 class RouteGenerator {
   RouteGenerator._();
@@ -29,8 +41,7 @@ class RouteGenerator {
           ),
         );
       case Routes.send:
-        final args =
-            settings.arguments as ({String senderPub, String receiverPub});
+        final args = settings.arguments as SendArgs;
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => BlocProvider(
@@ -38,6 +49,8 @@ class RouteGenerator {
               repository: getIt<SendRepository>(),
               senderPublicKey: args.senderPub,
               receiverPublicKey: args.receiverPub,
+              senderProfile: args.senderProfile,
+              receiverProfile: args.receiverProfile,
             ),
             child: const SendScreen(),
           ),
@@ -55,16 +68,22 @@ class RouteGenerator {
           ),
         );
       case Routes.scanRecipient:
-        final senderPub = settings.arguments as String;
+        final args = settings.arguments as ScanRecipientArgs;
         return MaterialPageRoute(
           settings: settings,
-          builder: (_) => ScanRecipientScreen(senderPub: senderPub),
+          builder: (_) => ScanRecipientScreen(
+            senderPub: args.senderPub,
+            senderProfile: args.senderProfile,
+          ),
         );
       case Routes.myAddress:
-        final myPub = settings.arguments as String;
+        final args = settings.arguments as MyAddressArgs;
         return MaterialPageRoute(
           settings: settings,
-          builder: (_) => MyAddressScreen(publicKey: myPub),
+          builder: (_) => MyAddressScreen(
+            publicKey: args.publicKey,
+            profile: args.profile,
+          ),
         );
       default:
         return MaterialPageRoute(

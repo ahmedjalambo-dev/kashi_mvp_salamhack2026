@@ -18,7 +18,12 @@ class PendingTxLocalService {
     if (!_changes.isClosed) _changes.add(null);
   }
 
-  Future<void> insert(SignedEnvelope envelope) async {
+  Future<void> insert(
+    SignedEnvelope envelope, {
+    String? counterpartyName,
+    String? counterpartyPhone,
+    String? counterpartyIban,
+  }) async {
     final db = await _db.database;
     await db.insert(AppConstants.pendingTxTable, {
       'id': envelope.payload.id,
@@ -34,6 +39,9 @@ class PendingTxLocalService {
       'expires_at': envelope.payload.expiresAt.toUtc().toIso8601String(),
       'status': 'pending_sync',
       'created_at': DateTime.now().toUtc().toIso8601String(),
+      'counterparty_name': counterpartyName,
+      'counterparty_phone': counterpartyPhone,
+      'counterparty_iban': counterpartyIban,
     });
     _notify();
   }
@@ -41,8 +49,18 @@ class PendingTxLocalService {
   /// Insert a row representing an outgoing transaction the user just signed
   /// while offline. Mirrors [insert] but the caller already has the raw
   /// fields (the sender doesn't go through the scanner).
-  Future<void> insertOutgoing({required SignedEnvelope envelope}) async {
-    await insert(envelope);
+  Future<void> insertOutgoing({
+    required SignedEnvelope envelope,
+    String? counterpartyName,
+    String? counterpartyPhone,
+    String? counterpartyIban,
+  }) async {
+    await insert(
+      envelope,
+      counterpartyName: counterpartyName,
+      counterpartyPhone: counterpartyPhone,
+      counterpartyIban: counterpartyIban,
+    );
   }
 
   Future<List<Map<String, Object?>>> queryAllForKey(String publicKey) async {

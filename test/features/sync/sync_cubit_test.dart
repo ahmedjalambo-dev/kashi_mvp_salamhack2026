@@ -8,6 +8,7 @@ import 'package:kashi_mvp_salamhack2026/core/services/connectivity_service.dart'
 import 'package:kashi_mvp_salamhack2026/features/sync/data/repositories/sync_repository.dart';
 import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_cubit.dart';
 import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_state.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/models/wallet_profile.dart';
 import 'package:kashi_mvp_salamhack2026/features/wallet/data/repositories/wallet_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -36,7 +37,16 @@ void main() {
     when(() => repository.pendingCount()).thenAnswer((_) async => 0);
     when(
       () => walletRepository.ensureKeyPair(),
-    ).thenAnswer((_) async => 'my-pub-key');
+    ).thenAnswer(
+      (_) async => (
+        publicKey: 'my-pub-key',
+        profile: const WalletProfile(
+          displayName: 'Test User',
+          phone: '+970 59 000 0000',
+          iban: 'PS92APAB000000000000000000000',
+        ),
+      ),
+    );
     when(
       () => repository.pullAndReconcile(any()),
     ).thenAnswer((_) async => const Success(ReconcileOutcome(0, null)));

@@ -40,11 +40,31 @@ class HistoryLocalService {
   Future<void> upsertAll(List<TransactionModel> transactions) async {
     if (transactions.isEmpty) return;
     final db = await _db.database;
+
+    // Load all pending rows indexed by id so we can copy counterparty
+    // profile fields that were captured at insert time.
+    final pendingRows = await _pending.queryPending();
+    final profileByTxId = {
+      for (final r in pendingRows)
+        r['id'] as String: (
+          name: r['counterparty_name'] as String?,
+          phone: r['counterparty_phone'] as String?,
+          iban: r['counterparty_iban'] as String?,
+        ),
+    };
+
     final batch = db.batch();
     for (final tx in transactions) {
+      final row = Map<String, Object?>.from(tx.toCacheRow());
+      final profile = profileByTxId[tx.id];
+      if (profile != null) {
+        row['counterparty_name'] ??= profile.name;
+        row['counterparty_phone'] ??= profile.phone;
+        row['counterparty_iban'] ??= profile.iban;
+      }
       batch.insert(
         AppConstants.transactionsCacheTable,
-        Map<String, Object?>.from(tx.toCacheRow()),
+        row,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }

@@ -84,7 +84,8 @@ class WalletCubit extends Cubit<WalletState> {
 
   Future<String?> _tryEnsureKeyPair() async {
     try {
-      return await _repository.ensureKeyPair();
+      final result = await _repository.ensureKeyPair();
+      return result.publicKey;
     } catch (_) {
       return null;
     }

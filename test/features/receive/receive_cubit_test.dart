@@ -28,6 +28,9 @@ void main() {
     nonce: 'nonce',
     clientCreatedAt: now,
     expiresAt: now.add(const Duration(hours: 1)),
+    senderDisplayName: 'Ahmad Khalil',
+    senderPhone: '+970 59 000 0001',
+    senderIban: 'PS92APAB000000000000000000001',
   );
   final envelope = SignedEnvelope(payload: payload, signature: 'sig');
 

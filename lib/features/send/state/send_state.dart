@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../features/wallet/data/models/wallet_profile.dart';
+
 sealed class SendState extends Equatable {
   const SendState();
   @override
@@ -17,12 +19,14 @@ class SendLoading extends SendState {
 class SendConfirming extends SendState {
   final double amount;
   final String receiverPublicKey;
+  final WalletProfile receiverProfile;
   const SendConfirming({
     required this.amount,
     required this.receiverPublicKey,
+    required this.receiverProfile,
   });
   @override
-  List<Object?> get props => [amount, receiverPublicKey];
+  List<Object?> get props => [amount, receiverPublicKey, receiverProfile];
 }
 
 class SendReady extends SendState {
@@ -30,14 +34,22 @@ class SendReady extends SendState {
   final String transactionId;
   final double amount;
   final String receiverPublicKey;
+  final WalletProfile receiverProfile;
   const SendReady({
     required this.qrData,
     required this.transactionId,
     required this.amount,
     required this.receiverPublicKey,
+    required this.receiverProfile,
   });
   @override
-  List<Object?> get props => [qrData, transactionId, amount, receiverPublicKey];
+  List<Object?> get props => [
+    qrData,
+    transactionId,
+    amount,
+    receiverPublicKey,
+    receiverProfile,
+  ];
 }
 
 class SendFailure extends SendState {

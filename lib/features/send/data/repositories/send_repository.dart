@@ -9,6 +9,7 @@ import '../../../../core/network/error_model.dart';
 import '../../../../core/network/result.dart';
 import '../../../../core/services/secure_storage.dart';
 import '../../../receive/data/services/pending_tx_local_service.dart';
+import '../../../wallet/data/models/wallet_profile.dart';
 import '../../../wallet/data/services/wallet_local_service.dart';
 import '../models/payment_payload.dart';
 import '../services/payment_signer.dart';
@@ -79,6 +80,8 @@ class SendRepository {
     required String senderPublicKey,
     required String receiverPublicKey,
     required double amount,
+    required WalletProfile senderProfile,
+    required WalletProfile receiverProfile,
   }) async {
     try {
       if (amount <= 0) {
@@ -129,6 +132,9 @@ class SendRepository {
         nonce: _nonce(),
         clientCreatedAt: now,
         expiresAt: now.add(const Duration(hours: 1)),
+        senderDisplayName: senderProfile.displayName,
+        senderPhone: senderProfile.phone,
+        senderIban: senderProfile.iban,
       );
       final signature = _paymentSigner.sign(payload, priv);
       final envelope = SignedEnvelope(payload: payload, signature: signature);
@@ -138,7 +144,12 @@ class SendRepository {
       // the sender cannot double-spend remaining offline balance. SyncCubit
       // will push this row; the RPC is idempotent so whichever side (sender or
       // receiver) reaches Supabase first wins and the other becomes a no-op.
-      await _pendingTx.insert(envelope);
+      await _pendingTx.insert(
+        envelope,
+        counterpartyName: receiverProfile.displayName,
+        counterpartyPhone: receiverProfile.phone,
+        counterpartyIban: receiverProfile.iban,
+      );
 
       return Success((
         qrData: base64Encode(utf8.encode(jsonEncode(envelope.toJson()))),

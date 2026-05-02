@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../models/wallet_model.dart';
+import '../models/wallet_profile.dart';
 
 class WalletRemoteService {
   WalletRemoteService(this._client);
@@ -15,6 +16,7 @@ class WalletRemoteService {
 
   Future<WalletModel> upsertWallet({
     required String publicKey,
+    required WalletProfile profile,
     String? deviceId,
   }) async {
     final user = _client.auth.currentUser;
@@ -28,6 +30,9 @@ class WalletRemoteService {
           'user_id': user.id,
           'public_key': publicKey,
           'device_id': deviceId,
+          'display_name': profile.displayName,
+          'phone': profile.phone,
+          'iban': profile.iban,
         }, onConflict: 'public_key')
         .select()
         .single();

@@ -5,24 +5,47 @@ import 'package:kashi_mvp_salamhack2026/core/network/result.dart';
 import 'package:kashi_mvp_salamhack2026/features/send/data/repositories/send_repository.dart';
 import 'package:kashi_mvp_salamhack2026/features/send/state/send_cubit.dart';
 import 'package:kashi_mvp_salamhack2026/features/send/state/send_state.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/models/wallet_profile.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockSendRepository extends Mock implements SendRepository {}
+
+const _senderProfile = WalletProfile(
+  displayName: 'Ahmad Khalil',
+  phone: '+970 59 000 0001',
+  iban: 'PS92APAB000000000000000000001',
+);
+
+const _receiverProfile = WalletProfile(
+  displayName: 'Yousef Barakat',
+  phone: '+970 59 000 0002',
+  iban: 'PS92APAB000000000000000000002',
+);
 
 const _readyState = SendReady(
   qrData: 'qr',
   transactionId: 'tx-uuid-1',
   amount: 42.0,
   receiverPublicKey: 'recv-pub',
+  receiverProfile: _receiverProfile,
 );
 
 const _confirmingState = SendConfirming(
   amount: 25.0,
   receiverPublicKey: 'recv-pub',
+  receiverProfile: _receiverProfile,
 );
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() {
+    registerFallbackValue(const WalletProfile(
+      displayName: '',
+      phone: '',
+      iban: '',
+    ));
+  });
 
   late _MockSendRepository repository;
 
@@ -34,6 +57,8 @@ void main() {
         repository: repository,
         senderPublicKey: 'sender-pub',
         receiverPublicKey: 'recv-pub',
+        senderProfile: _senderProfile,
+        receiverProfile: _receiverProfile,
       );
 
   group('cancelTransfer', () {
@@ -47,6 +72,8 @@ void main() {
             senderPublicKey: any(named: 'senderPublicKey'),
             receiverPublicKey: any(named: 'receiverPublicKey'),
             amount: any(named: 'amount'),
+            senderProfile: any(named: 'senderProfile'),
+            receiverProfile: any(named: 'receiverProfile'),
           ),
         ).thenAnswer(
           (_) async => const Success(
@@ -115,9 +142,6 @@ void main() {
         return buildCubit();
       },
       act: (c) => c.reviewTransfer(25.0),
-      // formKey.currentState is null in tests (no widget tree), so the guard
-      // returns early before emitting anything. We verify that validateAmount
-      // is NOT called in that case (form guard fires first).
       expect: () => [],
       verify: (_) => verifyNever(
         () => repository.validateAmount(
@@ -146,9 +170,6 @@ void main() {
         return buildCubit();
       },
       seed: () => const SendInitial(),
-      // Seed into a state where formKey guard would pass — but formKey has no
-      // widget tree in unit tests so we cannot actually pass form validation.
-      // We verify buildSignedQr is never called regardless.
       act: (c) => c.reviewTransfer(50.0),
       expect: () => [],
       verify: (_) => verifyNever(
@@ -156,6 +177,8 @@ void main() {
           senderPublicKey: any(named: 'senderPublicKey'),
           receiverPublicKey: any(named: 'receiverPublicKey'),
           amount: any(named: 'amount'),
+          senderProfile: any(named: 'senderProfile'),
+          receiverProfile: any(named: 'receiverProfile'),
         ),
       ),
     );
@@ -170,6 +193,8 @@ void main() {
             senderPublicKey: any(named: 'senderPublicKey'),
             receiverPublicKey: any(named: 'receiverPublicKey'),
             amount: any(named: 'amount'),
+            senderProfile: any(named: 'senderProfile'),
+            receiverProfile: any(named: 'receiverProfile'),
           ),
         ).thenAnswer(
           (_) async => const Success(
@@ -187,6 +212,7 @@ void main() {
           transactionId: 'tx-uuid-1',
           amount: 25.0,
           receiverPublicKey: 'recv-pub',
+          receiverProfile: _receiverProfile,
         ),
       ],
       verify: (_) => verify(
@@ -194,6 +220,8 @@ void main() {
           senderPublicKey: 'sender-pub',
           receiverPublicKey: 'recv-pub',
           amount: 25.0,
+          senderProfile: _senderProfile,
+          receiverProfile: _receiverProfile,
         ),
       ).called(1),
     );
@@ -206,6 +234,8 @@ void main() {
             senderPublicKey: any(named: 'senderPublicKey'),
             receiverPublicKey: any(named: 'receiverPublicKey'),
             amount: any(named: 'amount'),
+            senderProfile: any(named: 'senderProfile'),
+            receiverProfile: any(named: 'receiverProfile'),
           ),
         ).thenAnswer(
           (_) async => const Failure(
@@ -233,6 +263,8 @@ void main() {
           senderPublicKey: any(named: 'senderPublicKey'),
           receiverPublicKey: any(named: 'receiverPublicKey'),
           amount: any(named: 'amount'),
+          senderProfile: any(named: 'senderProfile'),
+          receiverProfile: any(named: 'receiverProfile'),
         ),
       ),
     );
@@ -240,7 +272,7 @@ void main() {
 
   group('cancelReview', () {
     blocTest<SendCubit, SendState>(
-      'emits [SendInitial] from SendConfirming; controllers retain text',
+      'emits [SendInitial] from SendConfirming; amount controller retains text',
       build: buildCubit,
       seed: () => _confirmingState,
       act: (c) {
@@ -255,6 +287,8 @@ void main() {
             senderPublicKey: any(named: 'senderPublicKey'),
             receiverPublicKey: any(named: 'receiverPublicKey'),
             amount: any(named: 'amount'),
+            senderProfile: any(named: 'senderProfile'),
+            receiverProfile: any(named: 'receiverProfile'),
           ),
         );
       },

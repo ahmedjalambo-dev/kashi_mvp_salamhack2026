@@ -115,10 +115,9 @@ class TransactionTile extends StatelessWidget {
   }
 
   String _paymentSubtitle(TransactionModel tx, String myPublicKey) {
-    final counterparty = tx.counterpartyFor(myPublicKey);
-    final shortKey = counterparty.length > 12
-        ? '${counterparty.substring(0, 8)}…${counterparty.substring(counterparty.length - 4)}'
-        : counterparty;
+    final counterpartyLabel = tx.counterpartyName?.isNotEmpty == true
+        ? tx.counterpartyName!
+        : _shortKey(tx.counterpartyFor(myPublicKey));
     final when = tx.syncedAt ?? tx.clientCreatedAt;
     final stamp = '${when.toLocal()}'.split('.').first;
     final tag = switch (tx.status) {
@@ -126,6 +125,10 @@ class TransactionTile extends StatelessWidget {
       TxStatus.rejected => 'Rejected · ',
       TxStatus.confirmed => '',
     };
-    return '$tag$shortKey\n$stamp';
+    return '$tag$counterpartyLabel\n$stamp';
   }
+
+  static String _shortKey(String key) => key.length > 12
+      ? '${key.substring(0, 8)}…${key.substring(key.length - 4)}'
+      : key;
 }

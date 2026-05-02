@@ -44,7 +44,8 @@ class SyncCubit extends Cubit<SyncState> {
         case Success(:final data):
           var reconciled = 0;
           try {
-            final publicKey = await _walletRepository.ensureKeyPair();
+            final (:publicKey, :profile) =
+                await _walletRepository.ensureKeyPair();
             final reconcileResult = await _repository.pullAndReconcile(
               publicKey,
             );

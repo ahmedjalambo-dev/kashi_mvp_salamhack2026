@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../core/components/scanner_view.dart';
 import '../../../core/crypto/address_codec.dart';
 import '../../../core/routes/routes.dart';
+import '../../wallet/data/models/wallet_profile.dart';
 
 class ScanRecipientScreen extends StatefulWidget {
-  const ScanRecipientScreen({super.key, required this.senderPub});
+  const ScanRecipientScreen({
+    super.key,
+    required this.senderPub,
+    required this.senderProfile,
+  });
 
   final String senderPub;
+  final WalletProfile senderProfile;
 
   @override
   State<ScanRecipientScreen> createState() => _ScanRecipientScreenState();
@@ -21,11 +27,25 @@ class _ScanRecipientScreenState extends State<ScanRecipientScreen> {
     if (_handling) return;
     _handling = true;
 
-    final String receiverPub;
+    final AddressResult result;
     try {
-      receiverPub = decodeAddress(raw);
+      result = decodeAddress(raw);
     } on FormatException catch (e) {
       setState(() => _error = e.message);
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _error = null;
+            _handling = false;
+          });
+        }
+      });
+      return;
+    }
+
+    final receiverProfile = result.profile;
+    if (receiverProfile == null) {
+      setState(() => _error = 'Address QR is missing profile information');
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
           setState(() {
@@ -40,7 +60,12 @@ class _ScanRecipientScreenState extends State<ScanRecipientScreen> {
     Navigator.pushReplacementNamed(
       context,
       Routes.send,
-      arguments: (senderPub: widget.senderPub, receiverPub: receiverPub),
+      arguments: (
+        senderPub: widget.senderPub,
+        receiverPub: result.publicKey,
+        senderProfile: widget.senderProfile,
+        receiverProfile: receiverProfile,
+      ),
     );
   }
 

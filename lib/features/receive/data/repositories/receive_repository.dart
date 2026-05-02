@@ -104,8 +104,16 @@ class ReceiveRepository {
     SignedEnvelope envelope,
   ) async {
     try {
+      final p = envelope.payload;
       try {
-        await _pending.insert(envelope);
+        await _pending.insert(
+          envelope,
+          counterpartyName: p.senderDisplayName.isNotEmpty
+              ? p.senderDisplayName
+              : null,
+          counterpartyPhone: p.senderPhone.isNotEmpty ? p.senderPhone : null,
+          counterpartyIban: p.senderIban.isNotEmpty ? p.senderIban : null,
+        );
       } on DatabaseException catch (e) {
         if (e.isUniqueConstraintError()) {
           return const Failure(

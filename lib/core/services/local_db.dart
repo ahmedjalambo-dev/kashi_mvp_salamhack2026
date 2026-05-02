@@ -19,7 +19,7 @@ class LocalDb {
     final path = p.join(dir.path, AppConstants.sqliteDbName);
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: (db, _) async {
         await db.execute('''
           create table ${AppConstants.pendingTxTable} (
@@ -34,7 +34,10 @@ class LocalDb {
             expires_at text not null,
             status text not null default 'pending_sync',
             last_error text,
-            created_at text not null
+            created_at text not null,
+            counterparty_name text,
+            counterparty_phone text,
+            counterparty_iban text
           );
         ''');
         await db.execute(
@@ -63,6 +66,26 @@ class LocalDb {
             "UPDATE ${AppConstants.pendingTxTable} SET status = 'voided_locally' WHERE status = 'cancelled';",
           );
         }
+        if (oldVersion < 8) {
+          await db.execute(
+            'ALTER TABLE ${AppConstants.pendingTxTable} ADD COLUMN counterparty_name TEXT;',
+          );
+          await db.execute(
+            'ALTER TABLE ${AppConstants.pendingTxTable} ADD COLUMN counterparty_phone TEXT;',
+          );
+          await db.execute(
+            'ALTER TABLE ${AppConstants.pendingTxTable} ADD COLUMN counterparty_iban TEXT;',
+          );
+          await db.execute(
+            'ALTER TABLE ${AppConstants.transactionsCacheTable} ADD COLUMN counterparty_name TEXT;',
+          );
+          await db.execute(
+            'ALTER TABLE ${AppConstants.transactionsCacheTable} ADD COLUMN counterparty_phone TEXT;',
+          );
+          await db.execute(
+            'ALTER TABLE ${AppConstants.transactionsCacheTable} ADD COLUMN counterparty_iban TEXT;',
+          );
+        }
       },
     );
   }
@@ -86,7 +109,10 @@ class LocalDb {
         amount real not null,
         status text not null,
         client_created_at text not null,
-        synced_at text
+        synced_at text,
+        counterparty_name text,
+        counterparty_phone text,
+        counterparty_iban text
       );
     ''');
     await db.execute(

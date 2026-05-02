@@ -3,18 +3,22 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/crypto/address_codec.dart';
+import '../../wallet/data/models/wallet_profile.dart';
 
 class MyAddressScreen extends StatelessWidget {
-  const MyAddressScreen({super.key, required this.publicKey});
+  const MyAddressScreen({
+    super.key,
+    required this.publicKey,
+    required this.profile,
+  });
 
   final String publicKey;
+  final WalletProfile profile;
 
   @override
   Widget build(BuildContext context) {
-    final qrData = encodeAddress(publicKey);
-    final truncated = publicKey.length > 20
-        ? '${publicKey.substring(0, 12)}…${publicKey.substring(publicKey.length - 8)}'
-        : publicKey;
+    final qrData = encodeAddress(publicKey, profile);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Address')),
@@ -47,29 +51,61 @@ class MyAddressScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 16),
-            Center(
-              child: SelectableText(
-                truncated,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
+            const SizedBox(height: 20),
+            _ProfileRow(label: 'Name', value: profile.displayName, theme: theme),
+            const SizedBox(height: 8),
+            _ProfileRow(label: 'Phone', value: profile.phone, theme: theme, mono: true),
+            const SizedBox(height: 8),
+            _ProfileRow(label: 'IBAN', value: profile.iban, theme: theme, mono: true),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () {
-                Clipboard.setData(ClipboardData(text: publicKey));
+                Clipboard.setData(ClipboardData(text: profile.iban));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Address copied')),
+                  const SnackBar(content: Text('IBAN copied')),
                 );
               },
               icon: const Icon(Icons.copy),
-              label: const Text('Copy address'),
+              label: const Text('Copy IBAN'),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ProfileRow extends StatelessWidget {
+  const _ProfileRow({
+    required this.label,
+    required this.value,
+    required this.theme,
+    this.mono = false,
+  });
+
+  final String label;
+  final String value;
+  final ThemeData theme;
+  final bool mono;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 52,
+          child: Text(label, style: theme.textTheme.labelSmall),
+        ),
+        Expanded(
+          child: SelectableText(
+            value,
+            style: mono
+                ? theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace')
+                : theme.textTheme.bodySmall,
+          ),
+        ),
+      ],
     );
   }
 }

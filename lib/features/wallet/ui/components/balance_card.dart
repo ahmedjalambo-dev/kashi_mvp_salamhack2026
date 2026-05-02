@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../data/models/wallet_profile.dart';
+
 class BalanceCard extends StatelessWidget {
   const BalanceCard({
     super.key,
     required this.balance,
-    required this.publicKey,
+    required this.profile,
     this.pendingOut = 0.0,
     this.onShowAddress,
   });
 
   final double balance;
   final double pendingOut;
-  final String publicKey;
+  final WalletProfile profile;
   final VoidCallback? onShowAddress;
 
   @override
@@ -29,7 +31,7 @@ class BalanceCard extends StatelessWidget {
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x2E2D5F3F), // rgba(45,95,63,0.18)
+            color: Color(0x2E2D5F3F),
             blurRadius: 24,
             offset: Offset(0, 8),
           ),
@@ -43,7 +45,7 @@ class BalanceCard extends StatelessWidget {
             Text(
               'Available balance',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: Colors.white.withAlpha(204), // ~0.8 opacity
+                color: Colors.white.withAlpha(204),
               ),
             ),
             const SizedBox(height: 8),
@@ -60,32 +62,45 @@ class BalanceCard extends StatelessWidget {
               Text(
                 'Confirmed: ₪ ${balance.toStringAsFixed(2)} · Pending out: ₪ ${pendingOut.toStringAsFixed(2)}',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withAlpha(179), // ~0.7 opacity
+                  color: Colors.white.withAlpha(179),
                 ),
               ),
             ],
             const SizedBox(height: 24),
-            Text(
-              'Public key',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: Colors.white.withAlpha(153), // ~0.6 opacity
-              ),
-            ),
-            const SizedBox(height: 4),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: SelectableText(
-                    publicKey,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
-                      color: Colors.white,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profile.displayName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        profile.phone,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: Colors.white.withAlpha(204),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        profile.iban,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: Colors.white.withAlpha(179),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (onShowAddress != null) ...[
-                  const SizedBox(width: 8),
+                if (onShowAddress != null)
                   GestureDetector(
                     onTap: onShowAddress,
                     child: Tooltip(
@@ -97,7 +112,6 @@ class BalanceCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
               ],
             ),
           ],

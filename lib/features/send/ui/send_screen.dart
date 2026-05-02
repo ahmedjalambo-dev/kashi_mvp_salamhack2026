@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/components/loading_view.dart';
+import '../../wallet/data/models/wallet_profile.dart';
 import '../state/send_cubit.dart';
 import '../state/send_state.dart';
 import 'components/amount_input.dart';
@@ -26,7 +27,7 @@ class SendScreen extends StatelessWidget {
             isScrollControlled: true,
             builder: (sheetCtx) => _ConfirmSendSheet(
               amount: s.amount,
-              receiverPublicKey: s.receiverPublicKey,
+              receiverProfile: s.receiverProfile,
               onConfirm: () {
                 Navigator.pop(sheetCtx);
                 cubit.confirmAndGenerateQR();
@@ -48,8 +49,7 @@ class SendScreen extends StatelessWidget {
                 amount: amount,
                 cubit: cubit,
               ),
-              SendConfirming() =>
-                const _SendForm(error: null),
+              SendConfirming() => const _SendForm(error: null),
               _ => _SendForm(error: state is SendFailure ? state.message : null),
             };
           },
@@ -59,9 +59,6 @@ class SendScreen extends StatelessWidget {
   }
 }
 
-/// Shown while the QR code is visible. Intercepts back-navigation (AppBar and
-/// hardware back) with a confirmation dialog so the user doesn't accidentally
-/// lock their funds.
 class _QrView extends StatelessWidget {
   const _QrView({
     required this.qrData,
@@ -100,11 +97,8 @@ class _QrView extends StatelessWidget {
               onPressed: () async {
                 if (await _confirmCancel(context)) {
                   await cubit.cancelTransfer();
-                  // Stays on screen; BlocBuilder rebuilds to SendInitial form.
                 }
               },
-              // icon: const Icon(Icons.cancel_outlined),
-              // label:
               style: OutlinedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
                 foregroundColor: Theme.of(context).colorScheme.error,
@@ -161,10 +155,7 @@ class _SendForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<SendCubit>();
-    final pub = cubit.receiverPublicKey;
-    final truncated = pub.length > 20
-        ? '${pub.substring(0, 12)}…${pub.substring(pub.length - 8)}'
-        : pub;
+    final profile = cubit.receiverProfile;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -192,7 +183,19 @@ class _SendForm extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          truncated,
+                          profile.displayName,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          profile.phone,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        Text(
+                          profile.iban,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontFamily: 'monospace',
                           ),
@@ -229,13 +232,13 @@ class _SendForm extends StatelessWidget {
 class _ConfirmSendSheet extends StatelessWidget {
   const _ConfirmSendSheet({
     required this.amount,
-    required this.receiverPublicKey,
+    required this.receiverProfile,
     required this.onConfirm,
     required this.onCancel,
   });
 
   final double amount;
-  final String receiverPublicKey;
+  final WalletProfile receiverProfile;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
@@ -262,8 +265,20 @@ class _ConfirmSendSheet extends StatelessWidget {
             const SizedBox(height: 16),
             Text('To', style: theme.textTheme.labelMedium),
             const SizedBox(height: 4),
-            SelectableText(
-              receiverPublicKey,
+            Text(
+              receiverProfile.displayName,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              receiverProfile.phone,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+            Text(
+              receiverProfile.iban,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
               ),

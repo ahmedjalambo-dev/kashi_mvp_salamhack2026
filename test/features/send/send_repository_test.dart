@@ -11,6 +11,7 @@ import 'package:kashi_mvp_salamhack2026/features/send/data/models/payment_payloa
 import 'package:kashi_mvp_salamhack2026/features/send/data/repositories/send_repository.dart';
 import 'package:kashi_mvp_salamhack2026/features/send/data/services/payment_signer.dart';
 import 'package:kashi_mvp_salamhack2026/features/wallet/data/models/wallet_model.dart';
+import 'package:kashi_mvp_salamhack2026/features/wallet/data/models/wallet_profile.dart';
 import 'package:kashi_mvp_salamhack2026/features/wallet/data/services/wallet_local_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:uuid/uuid.dart';
@@ -30,6 +31,11 @@ typedef _QrResult = ({String qrData, String transactionId});
 void main() {
   setUpAll(() {
     registerFallbackValue(_FakeSignedEnvelope());
+    registerFallbackValue(const WalletProfile(
+      displayName: '',
+      phone: '',
+      iban: '',
+    ));
   });
   late EcdsaSigner signer;
   late EcdsaKeyPair pair;
@@ -40,6 +46,17 @@ void main() {
   late SendRepository repo;
 
   const senderPub = 'sender-pub';
+
+  const senderProfile = WalletProfile(
+    displayName: 'Ahmad Khalil',
+    phone: '+970 59 000 0001',
+    iban: 'PS92APAB000000000000000000001',
+  );
+  const receiverProfile = WalletProfile(
+    displayName: 'Yousef Barakat',
+    phone: '+970 59 000 0002',
+    iban: 'PS92APAB000000000000000000002',
+  );
 
   setUp(() {
     signer = EcdsaSigner();
@@ -58,7 +75,14 @@ void main() {
           WalletModel(id: 'cache', publicKey: senderPub, balance: 100.0),
     );
     when(() => pendingTx.pendingOutgoingSum(any())).thenAnswer((_) async => 0);
-    when(() => pendingTx.insert(any())).thenAnswer((_) async {});
+    when(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    ).thenAnswer((_) async {});
 
     repo = SendRepository(
       paymentSigner: paymentSigner,
@@ -75,6 +99,8 @@ void main() {
       senderPublicKey: pair.publicKeyBase64,
       receiverPublicKey: 'receiver-pub',
       amount: 12.5,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     expect(result, isA<Success<_QrResult>>());
     final qr = (result as Success<_QrResult>).data.qrData;
@@ -91,6 +117,8 @@ void main() {
       senderPublicKey: pair.publicKeyBase64,
       receiverPublicKey: 'receiver-pub',
       amount: 5,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     final data = (result as Success<_QrResult>).data;
     expect(data.transactionId, isNotEmpty);
@@ -107,8 +135,17 @@ void main() {
       senderPublicKey: pair.publicKeyBase64,
       receiverPublicKey: 'receiver-pub',
       amount: 10,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
-    verify(() => pendingTx.insert(any())).called(1);
+    verify(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    ).called(1);
   });
 
   test('rejects non-positive amount', () async {
@@ -116,9 +153,18 @@ void main() {
       senderPublicKey: pair.publicKeyBase64,
       receiverPublicKey: 'r',
       amount: 0,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     expect(result, isA<Failure<_QrResult>>());
-    verifyNever(() => pendingTx.insert(any()));
+    verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
   });
 
   test('rejects when no cached balance exists', () async {
@@ -127,10 +173,19 @@ void main() {
       senderPublicKey: senderPub,
       receiverPublicKey: 'r',
       amount: 10,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     final failure = result as Failure<_QrResult>;
     expect(failure.error.code, 'NO_CACHE');
-    verifyNever(() => pendingTx.insert(any()));
+    verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
   });
 
   test('rejects overdraft — amount exceeds available balance', () async {
@@ -140,10 +195,19 @@ void main() {
       senderPublicKey: senderPub,
       receiverPublicKey: 'r',
       amount: 50,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     final failure = result as Failure<_QrResult>;
     expect(failure.error.code, 'INSUFFICIENT_FUNDS');
-    verifyNever(() => pendingTx.insert(any()));
+    verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
   });
 
   test('allows amount exactly equal to available balance', () async {
@@ -153,9 +217,18 @@ void main() {
       senderPublicKey: pair.publicKeyBase64,
       receiverPublicKey: 'r',
       amount: 60,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     expect(result, isA<Success<_QrResult>>());
-    verify(() => pendingTx.insert(any())).called(1);
+    verify(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    ).called(1);
   });
 
   test('fails when private key is missing', () async {
@@ -164,9 +237,18 @@ void main() {
       senderPublicKey: pair.publicKeyBase64,
       receiverPublicKey: 'r',
       amount: 1,
+      senderProfile: senderProfile,
+      receiverProfile: receiverProfile,
     );
     expect(result, isA<Failure<_QrResult>>());
-    verifyNever(() => pendingTx.insert(any()));
+    verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
   });
 
   group('validateAmount', () {
@@ -176,7 +258,14 @@ void main() {
         amount: 50,
       );
       expect(result, isA<Success<void>>());
-      verifyNever(() => pendingTx.insert(any()));
+      verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
     });
 
     test('returns Failure(AMOUNT) for amount <= 0', () async {
@@ -185,7 +274,14 @@ void main() {
         amount: 0,
       );
       expect((result as Failure).error.code, 'AMOUNT');
-      verifyNever(() => pendingTx.insert(any()));
+      verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
     });
 
     test('returns Failure(NO_CACHE) when loadCached returns null', () async {
@@ -195,7 +291,14 @@ void main() {
         amount: 10,
       );
       expect((result as Failure).error.code, 'NO_CACHE');
-      verifyNever(() => pendingTx.insert(any()));
+      verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
     });
 
     test('returns Failure(INSUFFICIENT_FUNDS) when amount > balance − reserved',
@@ -206,12 +309,26 @@ void main() {
         amount: 50, // balance=100, reserved=60 → available=40
       );
       expect((result as Failure).error.code, 'INSUFFICIENT_FUNDS');
-      verifyNever(() => pendingTx.insert(any()));
+      verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
     });
 
     test('does not call pendingTx.insert under any path', () async {
       await repo.validateAmount(senderPublicKey: senderPub, amount: 10);
-      verifyNever(() => pendingTx.insert(any()));
+      verifyNever(
+      () => pendingTx.insert(
+        any(),
+        counterpartyName: any(named: 'counterpartyName'),
+        counterpartyPhone: any(named: 'counterpartyPhone'),
+        counterpartyIban: any(named: 'counterpartyIban'),
+      ),
+    );
     });
   });
 

@@ -111,12 +111,34 @@ class _ConfirmSheet extends StatelessWidget {
             const SizedBox(height: 8),
             Text('From', style: theme.textTheme.labelMedium),
             const SizedBox(height: 4),
-            SelectableText(
-              payload.senderPublicKey,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
+            if (payload.senderDisplayName.isNotEmpty) ...[
+              Text(
+                payload.senderDisplayName,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+              if (payload.senderPhone.isNotEmpty)
+                Text(
+                  payload.senderPhone,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              if (payload.senderIban.isNotEmpty)
+                Text(
+                  payload.senderIban,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                  ),
+                ),
+            ] else
+              SelectableText(
+                payload.senderPublicKey,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                ),
+              ),
             const SizedBox(height: 32),
             FilledButton(
               onPressed: onAccept,

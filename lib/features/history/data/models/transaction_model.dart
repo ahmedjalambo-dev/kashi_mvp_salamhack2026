@@ -17,6 +17,9 @@ class TransactionModel extends Equatable {
   final DateTime? syncedAt;
   final DateTime? expiresAt;
   final String? lastError;
+  final String? counterpartyName;
+  final String? counterpartyPhone;
+  final String? counterpartyIban;
 
   const TransactionModel({
     required this.id,
@@ -29,6 +32,9 @@ class TransactionModel extends Equatable {
     this.syncedAt,
     this.expiresAt,
     this.lastError,
+    this.counterpartyName,
+    this.counterpartyPhone,
+    this.counterpartyIban,
   });
 
   bool isExpired(DateTime now) =>
@@ -54,6 +60,9 @@ class TransactionModel extends Equatable {
     syncedAt,
     expiresAt,
     lastError,
+    counterpartyName,
+    counterpartyPhone,
+    counterpartyIban,
   ];
 
   factory TransactionModel.fromRemote(Map<String, dynamic> json) {
@@ -83,6 +92,9 @@ class TransactionModel extends Equatable {
     },
     'client_created_at': clientCreatedAt.toUtc().toIso8601String(),
     'synced_at': syncedAt?.toUtc().toIso8601String(),
+    'counterparty_name': counterpartyName,
+    'counterparty_phone': counterpartyPhone,
+    'counterparty_iban': counterpartyIban,
   };
 
   factory TransactionModel.fromCacheRow(Map<String, Object?> row) {
@@ -101,6 +113,9 @@ class TransactionModel extends Equatable {
       syncedAt: row['synced_at'] != null
           ? DateTime.parse(row['synced_at'] as String)
           : null,
+      counterpartyName: row['counterparty_name'] as String?,
+      counterpartyPhone: row['counterparty_phone'] as String?,
+      counterpartyIban: row['counterparty_iban'] as String?,
     );
   }
 
@@ -114,6 +129,9 @@ class TransactionModel extends Equatable {
       status: TxStatus.pending,
       clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
       lastError: row['last_error'] as String?,
+      counterpartyName: row['counterparty_name'] as String?,
+      counterpartyPhone: row['counterparty_phone'] as String?,
+      counterpartyIban: row['counterparty_iban'] as String?,
     );
   }
 
