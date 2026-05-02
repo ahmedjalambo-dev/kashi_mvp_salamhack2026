@@ -64,12 +64,6 @@ void main() {
     when(() => local.markRejected(any(), any())).thenAnswer((_) async {});
     when(() => local.pendingCount()).thenAnswer((_) async => 0);
     when(() => remote.transactionExists(any())).thenAnswer((_) async => false);
-    // Default stubs for the incoming_pending drain loop.
-    when(() => local.pendingIncoming()).thenAnswer((_) async => []);
-    when(() => local.markIncomingSynced(any())).thenAnswer((_) async {});
-    when(
-      () => local.markIncomingRejected(any(), any()),
-    ).thenAnswer((_) async {});
   });
 
   test('23505 unique-violation is treated as successful sync', () async {

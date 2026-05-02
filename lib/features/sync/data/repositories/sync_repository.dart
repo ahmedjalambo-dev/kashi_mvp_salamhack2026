@@ -115,50 +115,6 @@ class SyncRepository {
         }
       }
 
-      // ── Drain incoming_pending (receiver pushed by scanning confirmation QR) ──
-      final incomingRows = await _local.pendingIncoming();
-      for (final row in incomingRows) {
-        final id = row['id'] as String;
-        try {
-          final response = await _remote.push(
-            id: id,
-            senderPublicKey: row['sender_public_key'] as String,
-            receiverPublicKey: row['receiver_public_key'] as String,
-            amount: (row['amount'] as num).toDouble(),
-            nonce: row['nonce'] as String,
-            signature: row['signature'] as String,
-            signedPayload: (jsonDecode(row['signed_payload'] as String) as Map)
-                .cast<String, dynamic>(),
-            clientCreatedAt: DateTime.parse(row['client_created_at'] as String),
-            expiresAt: DateTime.parse(row['expires_at'] as String),
-          );
-          final status = response['status'] as String? ?? 'ok';
-          const okStatuses = {'ok', 'duplicate', 'exists', 'already_synced'};
-          if (okStatuses.contains(status)) {
-            await _local.markIncomingSynced(id);
-            synced++;
-          } else {
-            await _local.markIncomingRejected(id, 'server status: $status');
-            failed++;
-          }
-        } on PostgrestException catch (e) {
-          if (_isDuplicate(e)) {
-            await _local.markIncomingSynced(id);
-            synced++;
-            continue;
-          }
-          if (_isInsufficientFunds(e)) continue;
-          // For incoming rows the caller IS the receiver, so 42501 shouldn't
-          // fire after the RPC migration. Treat it as a permanent failure here
-          // rather than silently looping — the safety net transactionExists
-          // check is only meaningful for sender rows.
-          await _local.markIncomingRejected(id, e.message);
-          failed++;
-        } on SocketException {
-          return Success(SyncOutcome(synced, failed));
-        }
-      }
-
       return Success(SyncOutcome(synced, failed));
     } catch (e) {
       return Failure(_errors.map(e));

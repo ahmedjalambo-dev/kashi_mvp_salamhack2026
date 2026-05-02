@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_cubit.dart';
 import 'package:kashi_mvp_salamhack2026/features/sync/state/sync_state.dart';
 
-import '../../data/models/transaction_model.dart';
 import '../../state/history_cubit.dart';
 import '../../state/history_state.dart';
 import 'transaction_tile.dart';
@@ -61,14 +60,7 @@ class _Ready extends StatelessWidget {
         ),
         if (state.pending.isNotEmpty)
           ...state.pending.map(
-            (tx) => TransactionTile(
-              tx: tx,
-              myPublicKey: publicKey,
-              onDismiss:
-                  tx.kind == TxKind.request && tx.isExpired(DateTime.now())
-                  ? () => context.read<HistoryCubit>().dismissRequest(tx.id)
-                  : null,
-            ),
+            (tx) => TransactionTile(tx: tx, myPublicKey: publicKey),
           )
         else
           const _EmptyHint(text: 'You\'re all caught up.'),

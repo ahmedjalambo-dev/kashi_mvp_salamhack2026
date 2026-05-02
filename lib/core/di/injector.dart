@@ -7,14 +7,12 @@ import '../crypto/payload_codec.dart';
 import '../network/error_handler.dart';
 import '../network/network_cubit.dart';
 import '../services/connectivity_service.dart';
-import '../services/qr_codec.dart';
+import '../../features/receive/data/services/scanner_service.dart';
 import '../services/secure_storage.dart';
 import '../../features/history/data/repositories/history_repository.dart';
 import '../../features/history/data/services/history_local_service.dart';
 import '../../features/history/data/services/history_remote_service.dart';
 import '../../features/receive/data/repositories/receive_repository.dart';
-import '../../features/receive/data/services/incoming_pending_local_service.dart';
-import '../../features/receive/data/services/pending_request_local_service.dart';
 import '../../features/receive/data/services/pending_tx_local_service.dart';
 import '../../features/send/data/repositories/send_repository.dart';
 import '../../features/send/data/services/payment_signer.dart';
@@ -39,12 +37,8 @@ void configureDependencies() {
   getIt.registerLazySingleton(() => EcdsaSigner());
   getIt.registerLazySingleton(() => const PayloadCodec());
   getIt.registerLazySingleton(() => const Uuid());
-  getIt.registerLazySingleton(() => const QrCodec());
-
   // Shared local services (registered early; referenced by Wallet + Send)
   getIt.registerLazySingleton(() => PendingTxLocalService());
-  getIt.registerLazySingleton(() => PendingRequestLocalService());
-  getIt.registerLazySingleton(() => IncomingPendingLocalService());
   getIt.registerLazySingleton(() => WalletLocalService());
 
   // Wallet
@@ -73,7 +67,7 @@ void configureDependencies() {
     () => SendRepository(
       paymentSigner: getIt<PaymentSigner>(),
       secureStorage: getIt<SecureStorage>(),
-      qrCodec: getIt<QrCodec>(),
+      uuid: getIt<Uuid>(),
       errors: getIt<ErrorHandler>(),
       walletLocal: getIt<WalletLocalService>(),
       pendingTx: getIt<PendingTxLocalService>(),
@@ -81,25 +75,20 @@ void configureDependencies() {
   );
 
   // Receive
+  getIt.registerLazySingleton(() => const ScannerService());
   getIt.registerLazySingleton(
     () => ReceiveRepository(
-      qrCodec: getIt<QrCodec>(),
-      uuid: getIt<Uuid>(),
+      scanner: getIt<ScannerService>(),
+      pendingTx: getIt<PendingTxLocalService>(),
+      signer: getIt<EcdsaSigner>(),
+      codec: getIt<PayloadCodec>(),
       errors: getIt<ErrorHandler>(),
-      pendingRequests: getIt<PendingRequestLocalService>(),
-      incomingPending: getIt<IncomingPendingLocalService>(),
-      paymentSigner: getIt<PaymentSigner>(),
     ),
   );
 
   // Sync
   getIt.registerLazySingleton(() => SyncRemoteService(getIt<SupabaseClient>()));
-  getIt.registerLazySingleton(
-    () => SyncLocalService(
-      getIt<PendingTxLocalService>(),
-      getIt<IncomingPendingLocalService>(),
-    ),
-  );
+  getIt.registerLazySingleton(() => SyncLocalService());
   getIt.registerLazySingleton(
     () => SyncRepository(
       remote: getIt<SyncRemoteService>(),
@@ -126,11 +115,7 @@ void configureDependencies() {
     () => HistoryRemoteService(getIt<SupabaseClient>()),
   );
   getIt.registerLazySingleton(
-    () => HistoryLocalService(
-      pending: getIt<PendingTxLocalService>(),
-      requests: getIt<PendingRequestLocalService>(),
-      incomingPending: getIt<IncomingPendingLocalService>(),
-    ),
+    () => HistoryLocalService(pending: getIt<PendingTxLocalService>()),
   );
   getIt.registerLazySingleton(
     () => HistoryRepository(
