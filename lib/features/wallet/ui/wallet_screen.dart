@@ -136,6 +136,15 @@ class _WalletReadyView extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 24),
+
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () {},
+                label: const Text('Pay To Friend'),
+              ),
+            ),
+            const SizedBox(height: 12),
+
             Row(
               children: [
                 Expanded(
@@ -168,6 +177,26 @@ class _WalletReadyView extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () {},
+                    label: const Text('iBURAQ'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () {},
+                    label: const Text('E-Sadad'),
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 16),
             BlocBuilder<SyncCubit, SyncState>(
               builder: (context, state) => switch (state) {

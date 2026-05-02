@@ -132,12 +132,7 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
-            ),
-          ),
+          Text(subtitle, style: theme.textTheme.bodySmall),
         ],
       ),
     );
@@ -152,12 +147,7 @@ class _EmptyHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.outline,
-        ),
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }

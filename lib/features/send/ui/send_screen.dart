@@ -50,7 +50,9 @@ class SendScreen extends StatelessWidget {
                 cubit: cubit,
               ),
               SendConfirming() => const _SendForm(error: null),
-              _ => _SendForm(error: state is SendFailure ? state.message : null),
+              _ => _SendForm(
+                error: state is SendFailure ? state.message : null,
+              ),
             };
           },
         ),
@@ -91,21 +93,6 @@ class _QrView extends StatelessWidget {
                   child: QrDisplay(data: qrData, amount: amount),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: () async {
-                if (await _confirmCancel(context)) {
-                  await cubit.cancelTransfer();
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                foregroundColor: Theme.of(context).colorScheme.error,
-                side: BorderSide(color: Theme.of(context).colorScheme.error),
-                minimumSize: const Size.fromHeight(48),
-              ),
-              child: const Text('Cancel transfer'),
             ),
             const SizedBox(height: 8),
             FilledButton(
@@ -184,21 +171,18 @@ class _SendForm extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           profile.displayName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         Text(
                           profile.phone,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontFamily: 'monospace',
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontFamily: 'monospace'),
                         ),
                         Text(
                           profile.iban,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontFamily: 'monospace',
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontFamily: 'monospace'),
                         ),
                       ],
                     ),
@@ -289,10 +273,7 @@ class _ConfirmSendSheet extends StatelessWidget {
               child: const Text('Confirm & Generate'),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: onCancel,
-              child: const Text('Cancel'),
-            ),
+            OutlinedButton(onPressed: onCancel, child: const Text('Cancel')),
           ],
         ),
       ),
