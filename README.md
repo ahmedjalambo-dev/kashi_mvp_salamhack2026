@@ -13,6 +13,16 @@
 
 ---
 
+## 🎥 Demo
+
+Watch the full walkthrough on Google Drive:
+
+**▶ [Kashi — Video Presentation](https://drive.google.com/file/d/12T43t-Z0u_f5vRcYSy29kXi2do25EvED/view?usp=sharing)**
+
+[![Watch the demo](https://img.shields.io/badge/Google%20Drive-Watch%20Demo-4285F4?logo=googledrive&logoColor=white)](https://drive.google.com/file/d/12T43t-Z0u_f5vRcYSy29kXi2do25EvED/view?usp=sharing)
+
+---
+
 ## What is Kashi?
 
 Kashi lets two people transfer value **without an internet connection** — using
